@@ -51,6 +51,17 @@ canvas#map{width:100%;height:auto;display:block;border-radius:8px;touch-action:n
 .notes .n b{font-size:.88rem}
 .notes input{margin-top:3px}
 .hint{font-size:.82rem;color:var(--muted);margin:.4em 0}
+.gmaps{display:flex;flex-wrap:wrap;align-items:center;gap:6px;background:var(--soft);border-radius:8px;padding:8px;margin-bottom:8px}
+.gmaps b{font-size:.9rem;color:var(--acc-d)}
+.gmaps input{flex:1;min-width:220px;width:auto}
+.crow{border-top:1px dashed var(--line);padding:7px 0;display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.crow input{font-size:.85rem;padding:5px 6px}
+.crow .res{grid-column:1/3;display:flex;align-items:center;gap:6px;font-size:.88rem}
+.crow .res input{width:80px}
+.crow .res b{flex:1;color:var(--acc-d);white-space:nowrap}
+.mini{border:1px solid var(--line);background:#fff;border-radius:6px;cursor:pointer;padding:3px 7px;font-size:.85rem}
+.mrow{border-top:1px dashed var(--line);padding:6px 0;font-size:.88rem}
+.mrow b{color:var(--acc-d)}
 @media print{header nav,.noprint{display:none!important}#tab-mapa{display:none!important}#tab-dinamica{display:block!important}body{background:#fff}.card{break-inside:avoid;border-color:#bbb}}
 </style>
 </head>
@@ -178,9 +189,11 @@ canvas#map{width:100%;height:auto;display:block;border-radius:8px;touch-action:n
         <button data-t="traco">✏️ Traço livre</button>
         <button data-t="simbolo">📍 Símbolo</button>
         <button data-t="texto">🔤 Texto</button>
+        <button data-t="medir">📐 Medir distância</button>
         <button data-t="apagar">🧽 Apagar item</button>
         <button onclick="undo()" data-noselect>↩️ Desfazer</button>
       </div>
+      <p class="hint" id="medirHint" style="display:none">📐 Arraste de um ponto a outro no mapa. A distância é calculada pela escala da grade.</p>
 
       <h3 style="margin-top:12px">Tipo de linha</h3>
       <div class="ltype" id="ltype"></div>
@@ -195,6 +208,13 @@ canvas#map{width:100%;height:auto;display:block;border-radius:8px;touch-action:n
 
     <!-- tela -->
     <div class="canvasbox">
+      <div class="gmaps">
+        <b>🌎 Ver a área real:</b>
+        <input type="text" id="endereco" placeholder="Endereço da escola ou da área (ex.: Escola X, Brasília - DF)">
+        <button class="b" onclick="abrirMaps()">🗺️ Abrir no Google Maps</button>
+        <button class="b alt" onclick="minhaLocal()">📍 Onde estou (satélite)</button>
+        <button class="b alt" onclick="abrirEarth()">🛰️ Google Earth</button>
+      </div>
       <canvas id="map" width="1200" height="800"></canvas>
       <div class="row">
         <label class="f" style="margin:0">Cada quadrado da grade =
@@ -211,7 +231,7 @@ canvas#map{width:100%;height:auto;display:block;border-radius:8px;touch-action:n
         <button class="b alt" onclick="removeBg()">Remover fundo</button>
         <button class="b warn" onclick="clearAll()">🗑️ Limpar tudo</button>
       </div>
-      <p class="hint">Dica: coloque como fundo um print da imagem de satélite da área (Google Maps / Google Earth) e desenhe por cima. A escala da grade ajuda a transformar passos em metros.</p>
+      <p class="hint">Dica: clique em <b>Abrir no Google Maps</b>, mude para a visão de <b>satélite</b>, tire um print da área (tecla PrtSc ou Win+Shift+S) e carregue em <b>📷 Fundo</b> para desenhar por cima. A escala da grade ajuda a transformar passos em metros.</p>
     </div>
 
     <!-- legenda e notas -->
@@ -220,6 +240,16 @@ canvas#map{width:100%;height:auto;display:block;border-radius:8px;touch-action:n
       <div class="legend" id="legend"><span class="hint">Aparece conforme vocês desenham.</span></div>
       <h3 style="margin-top:14px">Observações dos pontos</h3>
       <div class="notes" id="notes"><span class="hint">Cada símbolo colocado ganha um número. Escrevam aqui o que observaram.</span></div>
+
+      <h3 style="margin-top:14px">📐 Medições no mapa</h3>
+      <div id="medList"><span class="hint">Use a ferramenta <b>Medir distância</b> e dê um nome a cada medição (ex.: Portão → Quadra).</span></div>
+
+      <h3 style="margin-top:14px">👣 Medições de campo (passos)</h3>
+      <label class="f" style="margin-top:0">Tamanho do passo do grupo:
+        <input type="number" id="passo" value="0.7" step="0.05" min="0.3" max="1.5" style="width:70px;display:inline-block"> m</label>
+      <p class="hint">Como medir o passo: meçam 10 m com a trena, contem os passos e dividam 10 pelo número de passos.<br>Para <b>Casa → Escola</b>: digitem o endereço de casa em “De” e cliquem em 🗺️ — o Google Maps mostra a distância e o tempo a pé.</p>
+      <div id="campo"></div>
+      <button class="b alt" style="margin-top:6px;width:100%" onclick="addCampo()">➕ Adicionar medição</button>
     </div>
   </div>
 </section>
@@ -255,10 +285,10 @@ const LINES={
   limite:{nome:'Limite da área',cor:'#d6332b',w:3,dash:[16,8]},
   outro:{nome:'Outro traço',cor:'#222',w:3,dash:[]}
 };
-const SIMB=[['🏠','Moradia'],['🏫','Escola'],['🏪','Comércio'],['🏥','Saúde'],['⛪','Templo religioso'],['🚌','Ponto de ônibus'],['🌳','Árvore / vegetação'],['⚽','Lazer / praça'],['💧','Água / esgoto a céu aberto'],['🗑️','Lixo / descarte irregular'],['⚠️','Área de risco'],['💡','Iluminação precária'],['🚧','Calçada ruim / obstáculo'],['♿','Falta de acessibilidade'],['❤️','Lugar que gosto'],['😟','Lugar onde me sinto inseguro']];
+const SIMB=[['🏠','Moradia'],['🏫','Escola'],['🚪','Sala de aula'],['🏀','Pátio / quadra'],['⛲','Praça'],['🎠','Parquinho'],['🏪','Mercado / mercearia'],['🛍️','Loja'],['🍞','Padaria'],['💊','Farmácia'],['🏥','Saúde'],['🏛️','Prédio público'],['⛪','Templo religioso'],['🚌','Ponto de ônibus'],['🌳','Árvore / vegetação'],['⚽','Campo de futebol'],['💧','Água / esgoto a céu aberto'],['🗑️','Lixo / descarte irregular'],['⚠️','Área de risco'],['💡','Iluminação precária'],['🚧','Calçada ruim / obstáculo'],['♿','Falta de acessibilidade'],['❤️','Lugar que gosto'],['😟','Lugar onde me sinto inseguro']];
 const symName=e=>(SIMB.find(s=>s[0]===e)||[e,e])[1];
 
-let items=[],hist=[],tool='reta',lt='rua',sym='🏠',cur=null,bg=null;
+let items=[],hist=[],tool='reta',lt='rua',sym='🏠',cur=null,bg=null,campo=[];
 const cv=document.getElementById('map'),ctx=cv.getContext('2d');
 
 /* ---------- montar UI ---------- */
@@ -278,15 +308,33 @@ SIMB.forEach(([e,n])=>{
   syBox.appendChild(b);
 });
 symname.textContent=symName(sym);
-function pickTool(t){tool=t;document.querySelectorAll('#tools button[data-t]').forEach(x=>x.classList.toggle('on',x.dataset.t===t))}
+function pickTool(t){tool=t;document.querySelectorAll('#tools button[data-t]').forEach(x=>x.classList.toggle('on',x.dataset.t===t));medirHint.style.display=t==='medir'?'block':'none'}
 document.querySelectorAll('#tools button[data-t]').forEach(b=>b.onclick=()=>pickTool(b.dataset.t));
 ['esc','gridOn','bgOp','titulo','grupo'].forEach(id=>document.getElementById(id).addEventListener('input',render));
+esc.addEventListener('input',renderMed);
 
 /* ---------- desenho ---------- */
 function save(){hist.push(JSON.stringify(items));if(hist.length>80)hist.shift()}
 function undo(){if(!hist.length)return;items=JSON.parse(hist.pop());refresh()}
 function clearAll(){if(!items.length)return;if(!confirm('Apagar todo o desenho?'))return;save();items=[];refresh()}
 function refresh(){render();renderSide()}
+
+/* ---------- medições ---------- */
+const MED_COR='#6a3fb5';
+const pxToM=px=>px/50*(+esc.value||10);
+const fmtM=m=>m>=1000?(m/1000).toFixed(2).replace('.',',')+' km':(m<10?m.toFixed(1).replace('.',','):Math.round(m))+' m';
+const medM=d=>pxToM(Math.hypot(d.p[1][0]-d.p[0][0],d.p[1][1]-d.p[0][1]));
+function drawMeasure(c,d,num){
+  const [a,b]=d.p,ang=Math.atan2(b[1]-a[1],b[0]-a[0]),nx=-Math.sin(ang)*9,ny=Math.cos(ang)*9;
+  c.save();c.strokeStyle=MED_COR;c.lineWidth=3;c.setLineDash([10,6]);
+  c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.stroke();c.setLineDash([]);
+  [a,b].forEach(p=>{c.beginPath();c.moveTo(p[0]-nx,p[1]-ny);c.lineTo(p[0]+nx,p[1]+ny);c.stroke()});
+  const lbl=(num?num+'. ':'')+(d.r?d.r+': ':'')+fmtM(medM(d));
+  c.font='bold 15px system-ui,sans-serif';const w=c.measureText(lbl).width+14,mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2-16;
+  c.fillStyle='rgba(255,255,255,.92)';c.strokeStyle=MED_COR;c.lineWidth=1.5;
+  c.beginPath();c.roundRect?c.roundRect(mx-w/2,my-12,w,24,6):c.rect(mx-w/2,my-12,w,24);c.fill();c.stroke();
+  c.fillStyle=MED_COR;c.textAlign='center';c.textBaseline='middle';c.fillText(lbl,mx,my+1);c.restore();
+}
 
 function drawStroke(c,s){
   const L=LINES[s.k]||LINES.outro;
@@ -312,6 +360,7 @@ function drawScene(c,W,H){
     if(i.t==='x'){c.font='bold 22px system-ui,sans-serif';c.textAlign='center';c.textBaseline='middle';
       c.lineWidth=5;c.strokeStyle='#fff';c.strokeText(i.s,i.x,i.y);c.fillStyle='#22302a';c.fillText(i.s,i.x,i.y)}
   });
+  items.filter(i=>i.t==='d').forEach((d,k)=>drawMeasure(c,d,k+1));
   // Norte
   const nx=W-60,ny=70;c.save();c.fillStyle='#22302a';c.strokeStyle='#22302a';c.lineWidth=2;
   c.beginPath();c.moveTo(nx,ny-38);c.lineTo(nx+14,ny+10);c.lineTo(nx,ny);c.closePath();c.fill();
@@ -326,7 +375,7 @@ function drawScene(c,W,H){
   c.fillStyle='#22302a';c.font='13px system-ui';c.textAlign='center';c.textBaseline='bottom';
   [0,1,2,3].forEach(k=>c.fillText(k*m+(k===3?' m':''),sx+k*50,sy-3));c.restore();
 }
-function render(){drawScene(ctx,cv.width,cv.height);if(cur)drawStroke(ctx,cur)}
+function render(){drawScene(ctx,cv.width,cv.height);if(cur)(cur.t==='d'?drawMeasure(ctx,cur,0):drawStroke(ctx,cur))}
 
 function pos(e){const r=cv.getBoundingClientRect();return[(e.clientX-r.left)*cv.width/r.width,(e.clientY-r.top)*cv.height/r.height]}
 function segDist(p,a,b){const dx=b[0]-a[0],dy=b[1]-a[1],l=dx*dx+dy*dy;let t=l?((p[0]-a[0])*dx+(p[1]-a[1])*dy)/l:0;t=Math.max(0,Math.min(1,t));return Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dy)}
@@ -334,11 +383,12 @@ cv.addEventListener('pointerdown',e=>{
   const p=pos(e);cv.setPointerCapture(e.pointerId);
   if(tool==='traco')cur={t:'s',k:lt,p:[p]};
   else if(tool==='reta')cur={t:'s',k:lt,p:[p,p]};
+  else if(tool==='medir')cur={t:'d',r:'',p:[p,p]};
   else if(tool==='simbolo'){save();items.push({t:'m',e:sym,x:p[0],y:p[1],n:''});refresh()}
   else if(tool==='texto'){const s=txt.value.trim();if(!s){txt.focus();txt.placeholder='Digite o texto aqui primeiro!';return}save();items.push({t:'x',s,x:p[0],y:p[1]});refresh()}
   else if(tool==='apagar'){
     for(let i=items.length-1;i>=0;i--){const it=items[i];let hit=false;
-      if(it.t!=='s')hit=Math.hypot(it.x-p[0],it.y-p[1])<30;
+      if(it.t==='m'||it.t==='x')hit=Math.hypot(it.x-p[0],it.y-p[1])<30;
       else hit=it.p.length===1?Math.hypot(it.p[0][0]-p[0],it.p[0][1]-p[1])<15:it.p.some((q,j)=>j&&segDist(p,it.p[j-1],q)<15);
       if(hit){save();items.splice(i,1);refresh();break}}
   }
@@ -346,8 +396,9 @@ cv.addEventListener('pointerdown',e=>{
 cv.addEventListener('pointermove',e=>{if(!cur)return;const p=pos(e);if(tool==='traco')cur.p.push(p);else cur.p[1]=p;render()});
 cv.addEventListener('pointerup',()=>{if(!cur)return;
   const [a,b]=[cur.p[0],cur.p[cur.p.length-1]];
-  if(cur.p.length>2||Math.hypot(a[0]-b[0],a[1]-b[1])>4){save();items.push(cur)}
-  cur=null;refresh()});
+  let novo=false;if(cur.p.length>2||Math.hypot(a[0]-b[0],a[1]-b[1])>4){save();items.push(cur);novo=cur.t==='d'}
+  cur=null;refresh();
+  if(novo){const ins=medList.querySelectorAll('input');if(ins.length)ins[ins.length-1].focus()}});
 
 /* ---------- legenda e notas ---------- */
 function legendData(){
@@ -357,16 +408,49 @@ function legendData(){
 }
 function renderSide(){
   const {ls,cnt}=legendData();
-  legend.innerHTML=(!ls.length&&!Object.keys(cnt).length)?'<span class="hint">Aparece conforme vocês desenham.</span>':
+  const hasD=items.some(i=>i.t==='d');
+  legend.innerHTML=(!ls.length&&!Object.keys(cnt).length&&!hasD)?'<span class="hint">Aparece conforme vocês desenham.</span>':
     ls.map(k=>{const L=LINES[k];return`<div><span style="display:inline-block;width:30px;border-top:${Math.min(L.w,8)}px ${L.dash.length?'dashed':'solid'} ${L.cor}"></span>${L.nome}</div>`}).join('')+
-    Object.entries(cnt).map(([e,c])=>`<div><span style="font-size:1.2rem">${e}</span>${symName(e)} <span class="hint">(${c})</span></div>`).join('');
+    Object.entries(cnt).map(([e,c])=>`<div><span style="font-size:1.2rem">${e}</span>${symName(e)} <span class="hint">(${c})</span></div>`).join('')+
+    (hasD?`<div><span style="display:inline-block;width:30px;border-top:3px dashed ${MED_COR}"></span>Medição de distância</div>`:'');
   const ms=items.filter(i=>i.t==='m');
   notes.innerHTML=ms.length?'':'<span class="hint">Cada símbolo colocado ganha um número. Escrevam aqui o que observaram.</span>';
   ms.forEach((m,i)=>{const d=document.createElement('div');d.className='n';
     d.innerHTML=`<b>${i+1}. ${m.e} ${symName(m.e)}</b>`;
     const inp=document.createElement('input');inp.type='text';inp.value=m.n;inp.placeholder='O que vocês observaram aqui?';
     inp.oninput=()=>m.n=inp.value;d.appendChild(inp);notes.appendChild(d)});
+  renderMed();
 }
+function renderMed(){
+  const ds=items.filter(i=>i.t==='d');
+  medList.innerHTML=ds.length?'':'<span class="hint">Use a ferramenta <b>Medir distância</b> e dê um nome a cada medição (ex.: Portão → Quadra).</span>';
+  ds.forEach((d,i)=>{const r=document.createElement('div');r.className='mrow';
+    r.innerHTML=`<b>${i+1}.</b> ${fmtM(medM(d))} <span class="hint">(≈ ${Math.round(medM(d)/(+passo.value||0.7))} passos)</span>`;
+    const inp=document.createElement('input');inp.type='text';inp.value=d.r;inp.placeholder='De onde → para onde? (ex.: Sala → Pátio)';
+    inp.oninput=()=>{d.r=inp.value;render()};r.appendChild(inp);medList.appendChild(r)});
+}
+
+/* ---------- medições de campo (passos) ---------- */
+const CAMPO_SUG=[['Casa','Escola'],['Sala de aula','Pátio'],['Portão da escola','Quadra'],['Escola','Praça']];
+function addCampo(de,para){const s=CAMPO_SUG[campo.length]||['',''];campo.push({de:de??s[0],para:para??s[1],passos:''});renderCampo()}
+function campoM(c){return(+c.passos||0)*(+passo.value||0.7)}
+function renderCampo(){
+  campoBox.innerHTML=campo.length?'':'<span class="hint">Nenhuma medição ainda.</span>';
+  campo.forEach((c,i)=>{const r=document.createElement('div');r.className='crow';
+    r.innerHTML=`<input type="text" placeholder="De" value="${c.de.replace(/"/g,'&quot;')}"><input type="text" placeholder="Para" value="${c.para.replace(/"/g,'&quot;')}">
+      <div class="res"><input type="number" min="0" placeholder="passos" value="${c.passos}"> passos = <b>${c.passos?fmtM(campoM(c)):'—'}</b>
+      <button class="mini" title="Ver a rota a pé no Google Maps">🗺️</button><button class="mini" title="Remover">✕</button></div>`;
+    const [de,para,ps]=r.querySelectorAll('input'),[bm,bx]=r.querySelectorAll('button'),out=r.querySelector('b');
+    de.oninput=()=>c.de=de.value;para.oninput=()=>c.para=para.value;
+    ps.oninput=()=>{c.passos=ps.value;out.textContent=c.passos?fmtM(campoM(c)):'—'};
+    bm.onclick=()=>{const esc_=endereco.value.trim(),isAddr=v=>/\d|,/.test(v),
+        res=v=>/escola/i.test(v)&&esc_?esc_:(isAddr(v)?v:''),o=res(c.de),d=res(c.para)||c.para;
+      window.open('https://www.google.com/maps/dir/?api=1&travelmode=walking'+(o?'&origin='+encodeURIComponent(o):'')+(d?'&destination='+encodeURIComponent(d):''),'_blank','noopener')};
+    bx.onclick=()=>{campo.splice(i,1);renderCampo()};
+    campoBox.appendChild(r)});
+}
+const campoBox=document.getElementById('campo');
+passo.addEventListener('input',()=>{renderCampo();renderMed()});
 
 /* ---------- fundo ---------- */
 bgFile.onchange=()=>{const f=bgFile.files[0];if(!f)return;const r=new FileReader();
@@ -380,7 +464,12 @@ function exportPNG(){
   const tmp=document.createElement('canvas').getContext('2d');tmp.font='14px system-ui';
   const {ls,cnt}=legendData(),ms=items.filter(i=>i.t==='m');
   let lines=0;ms.forEach(m=>lines+=1+(m.n?wrap(tmp,m.n,side-50).length:0));
-  const sideH=60+(ls.length+Object.keys(cnt).length)*28+60+lines*20+40;
+  const ds=items.filter(i=>i.t==='d'),cs=campo.filter(c=>+c.passos>0);
+  const medTxt=[...ds.map((d,i)=>(i+1)+'. '+(d.r||'Medição')+': '+fmtM(medM(d))),
+    ...cs.map(c=>'👣 '+(c.de||'?')+' → '+(c.para||'?')+': '+c.passos+' passos ≈ '+fmtM(campoM(c)))];
+  const medLin=medTxt.map(t=>wrap(tmp,t,side-30));
+  lines+=medLin.reduce((a,l)=>a+l.length,0)+(medTxt.length?3:0);
+  const sideH=60+(ls.length+Object.keys(cnt).length+1)*28+60+lines*20+40;
   const c=document.createElement('canvas');c.width=W+side+pad*3;c.height=top+Math.max(H,sideH)+pad*2+30;
   const x=c.getContext('2d');
   x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);
@@ -395,6 +484,11 @@ function exportPNG(){
     x.fillStyle='#22302a';x.fillText(L.nome,lx+48,ly);ly+=28});
   Object.entries(cnt).forEach(([e,n])=>{x.font='22px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif';x.fillText(e,lx+6,ly);
     x.font='15px system-ui';x.fillStyle='#22302a';x.fillText(symName(e)+' ('+n+')',lx+48,ly);ly+=28});
+  if(ds.length){x.save();x.strokeStyle=MED_COR;x.lineWidth=3;x.setLineDash([10,6]);x.beginPath();x.moveTo(lx,ly);x.lineTo(lx+36,ly);x.stroke();x.restore();
+    x.font='15px system-ui';x.fillStyle='#22302a';x.fillText('Medição de distância',lx+48,ly);ly+=28}
+  if(medTxt.length){ly+=20;x.fillStyle='#235f45';x.font='bold 20px system-ui';x.fillText('Distâncias',lx,ly);ly+=30;
+    x.font='14px system-ui';x.fillStyle='#22302a';medLin.forEach(ls_=>ls_.forEach((t,j)=>{x.fillText(t,lx+(j?16:0),ly);ly+=20}));
+    if(cs.length){x.fillStyle='#5d6a62';x.fillText('Passo do grupo: '+String(+passo.value||0.7).replace('.',',')+' m',lx,ly);ly+=20}}
   if(ms.length){ly+=20;x.fillStyle='#235f45';x.font='bold 20px system-ui';x.fillText('Observações',lx,ly);ly+=30;
     ms.forEach((m,i)=>{x.fillStyle='#22302a';x.font='bold 14px system-ui';x.fillText((i+1)+'. '+symName(m.e),lx,ly);ly+=20;
       x.font='14px system-ui';x.fillStyle='#5d6a62';if(m.n)wrap(x,m.n,side-50).forEach(t=>{x.fillText(t,lx+16,ly);ly+=20})})}
@@ -402,12 +496,36 @@ function exportPNG(){
   x.fillText('Fonte: levantamento de campo dos alunos (mapeamento participativo).',pad,c.height-10);
   const a=document.createElement('a');a.download=(grupo.value||'mapa').replace(/[^\wÀ-ú-]+/g,'_')+'.png';a.href=c.toDataURL('image/png');a.click();
 }
-function saveJSON(){const data={titulo:titulo.value,grupo:grupo.value,esc:esc.value,items};
+function saveJSON(){const data={titulo:titulo.value,grupo:grupo.value,esc:esc.value,passo:passo.value,campo,items};
   const a=document.createElement('a');a.download=(grupo.value||'projeto').replace(/[^\wÀ-ú-]+/g,'_')+'.json';
   a.href=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'}));a.click()}
 openFile.onchange=()=>{const f=openFile.files[0];if(!f)return;f.text().then(t=>{try{const d=JSON.parse(t);save();
-  items=d.items||[];titulo.value=d.titulo||'';grupo.value=d.grupo||'';esc.value=d.esc||10;refresh()}catch(e){alert('Arquivo inválido')}});openFile.value=''};
+  items=d.items||[];titulo.value=d.titulo||'';grupo.value=d.grupo||'';esc.value=d.esc||10;
+  passo.value=d.passo||0.7;campo=d.campo||[];renderCampo();refresh()}catch(e){alert('Arquivo inválido')}});openFile.value=''};
 
+/* ---------- Google Maps ---------- */
+const endereco=document.getElementById('endereco');
+try{endereco.value=localStorage.getItem('mp_endereco')||''}catch(e){}
+endereco.addEventListener('input',()=>{try{localStorage.setItem('mp_endereco',endereco.value)}catch(e){}});
+endereco.addEventListener('keydown',e=>{if(e.key==='Enter')abrirMaps()});
+function abrirMaps(){
+  const q=endereco.value.trim();
+  const url=q?'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(q):'https://www.google.com/maps';
+  window.open(url,'_blank','noopener');
+}
+function minhaLocal(){
+  if(!navigator.geolocation){alert('Este navegador não permite localização. Digite o endereço e use "Abrir no Google Maps".');return}
+  navigator.geolocation.getCurrentPosition(p=>{
+    const c=p.coords.latitude.toFixed(6)+','+p.coords.longitude.toFixed(6);
+    window.open('https://www.google.com/maps/@?api=1&map_action=map&center='+c+'&zoom=18&basemap=satellite','_blank','noopener');
+  },()=>alert('Não foi possível obter a localização. Permita o acesso à localização no navegador ou digite o endereço.'),{enableHighAccuracy:true,timeout:10000});
+}
+function abrirEarth(){
+  const q=endereco.value.trim();
+  window.open(q?'https://earth.google.com/web/search/'+encodeURIComponent(q):'https://earth.google.com/web/','_blank','noopener');
+}
+
+addCampo();addCampo();
 refresh();
 </script>
 </body>
