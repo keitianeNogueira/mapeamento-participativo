@@ -2,103 +2,275 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Mapeamento Participativo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Missão Cartógrafos — Mapeamento Participativo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f5f2ea;--card:#fff;--ink:#22302a;--muted:#5d6a62;--acc:#2f7d5b;--acc-d:#235f45;--acc2:#e0a526;--line:#dcd5c5;--soft:#eaf3ee}
-*{box-sizing:border-box}
-body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
-header{background:var(--acc);color:#fff;padding:12px 20px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;justify-content:space-between}
-header h1{margin:0;font-size:1.25rem}
-nav{display:flex;gap:6px;flex-wrap:wrap}
-nav button{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.35);padding:8px 14px;border-radius:8px;font-size:.95rem;cursor:pointer}
-nav button.on{background:#fff;color:var(--acc-d);font-weight:600}
-main{padding:18px;max-width:1500px;margin:0 auto}
+/* Paleta inspirada nas cartas topográficas: curva de nível, hidrografia, vegetação, rodovia */
+:root{
+  --paper:#f5f7f2;--card:#fff;--ink:#13304a;--muted:#55687a;--line:#d5ddd6;
+  --azul:#1f6fb2;--curva:#a8612d;--verde:#2e8a4a;--estrada:#d9432f;--sol:#ffc933;
+  --acc:var(--azul);--acc-d:var(--ink);--acc2:var(--sol);--soft:#e6eff7;
+  --disp:"Bricolage Grotesque","Trebuchet MS","Segoe UI",system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 80px)}
+body{margin:0;font-family:var(--body);background:var(--paper);color:var(--ink);line-height:1.55;font-size:1rem}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--sol);outline-offset:2px}
+h1,h2,h3{font-family:var(--disp);line-height:1.15;letter-spacing:-.01em}
+
+/* ---------- cabeçalho ---------- */
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--ink);color:#fff;
+  display:flex;align-items:center;gap:14px;padding:10px 18px;flex-wrap:wrap}
+.marca{display:flex;align-items:center;gap:10px;font-family:var(--disp);font-weight:800;font-size:1.15rem;white-space:nowrap}
+.marca svg{width:30px;height:30px}
+.tabs{display:flex;gap:4px;overflow-x:auto;flex:1;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{background:transparent;color:#cfe0ef;border:0;border-radius:8px;padding:8px 12px;cursor:pointer;white-space:nowrap;font-size:.95rem}
+.tabs button:hover{background:rgba(255,255,255,.08);color:#fff}
+.tabs button.on{background:#fff;color:var(--ink);font-weight:700}
+.tchip{margin-left:auto;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);
+  color:#fff;border-radius:99px;padding:6px 14px;cursor:pointer;font-family:var(--disp);font-weight:800;font-size:1.05rem;font-variant-numeric:tabular-nums}
+.tchip[data-st="quase"]{background:var(--sol);color:var(--ink);border-color:var(--sol)}
+.tchip[data-st="fim"]{background:var(--estrada);border-color:var(--estrada)}
+
+main{padding:22px 18px 40px;max-width:1500px;margin:0 auto}
 .tab{display:none}.tab.on{display:block}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin-bottom:14px}
-h2{margin:.2em 0 .5em;font-size:1.2rem;color:var(--acc-d)}
-h3{margin:.8em 0 .3em;font-size:1rem}
-.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
-table{border-collapse:collapse;width:100%;font-size:.93rem}
-th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin-bottom:16px}
+h2{margin:.1em 0 .5em;font-size:1.35rem;color:var(--ink)}
+h3{margin:.8em 0 .3em;font-size:1.05rem}
+p,li{max-width:75ch}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
 th{background:var(--soft)}
-.pill{display:inline-block;background:var(--soft);border-radius:99px;padding:2px 10px;margin:2px;font-size:.88rem}
-.timer{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.timer .t{font-size:2.6rem;font-variant-numeric:tabular-nums;font-weight:700;min-width:140px}
-.b{background:var(--acc);color:#fff;border:0;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:.9rem}
-.b.alt{background:#fff;color:var(--acc-d);border:1px solid var(--acc)}
-.b.warn{background:#b94a3a}
-/* mapa */
+.pill{display:inline-block;background:var(--soft);border-radius:99px;padding:2px 11px;margin:2px;font-size:.9rem}
+.b{background:var(--azul);color:#fff;border:0;border-radius:9px;padding:9px 14px;cursor:pointer;font-size:.95rem;font-weight:700}
+.b:hover{filter:brightness(1.08)}
+.b.alt{background:#fff;color:var(--ink);border:1.5px solid var(--azul)}
+.b.warn{background:var(--estrada)}
+.b.big{font-size:1.1rem;padding:13px 20px;border-radius:12px}
+.b.sol{background:var(--sol);color:var(--ink)}
+.hint{font-size:.85rem;color:var(--muted);margin:.4em 0}
+
+/* ---------- abertura ---------- */
+.hero{position:relative;overflow:hidden;border-radius:20px;background:#fbfcf8;border:1px solid var(--line);
+  min-height:min(560px,80vh);display:flex;align-items:flex-end;padding:clamp(22px,5vw,56px)}
+.hero svg.topo{position:absolute;inset:0;width:100%;height:100%}
+.topo path{fill:none;stroke:var(--curva);stroke-width:1.1;opacity:.55}
+.topo path.mestra{stroke-width:2.4;opacity:.75}
+.topo path.rio{stroke:var(--azul);stroke-width:4;opacity:.8;stroke-linecap:round}
+.topo path.via{stroke:var(--estrada);stroke-width:5;opacity:.85}
+.topo path{stroke-dasharray:1;stroke-dashoffset:1;animation:desenha 2.4s cubic-bezier(.4,.1,.2,1) forwards;animation-delay:calc(var(--i,0) * 70ms)}
+@keyframes desenha{to{stroke-dashoffset:0}}
+.hero .pin{position:absolute;font-size:2.2rem;transform:translate(-50%,-100%);animation:cai .5s 2.2s both cubic-bezier(.3,1.6,.5,1)}
+@keyframes cai{from{opacity:0;transform:translate(-50%,-220%)}}
+.hero-txt{position:relative;max-width:760px;background:rgba(251,252,248,.86);border-radius:16px;padding:18px 22px 22px;backdrop-filter:blur(2px)}
+.hero h1{font-size:clamp(2.7rem,8vw,6.2rem);font-weight:800;margin:0;line-height:.92;letter-spacing:-.035em}
+.hero h1 span{display:block;font-size:.42em;font-weight:600;letter-spacing:-.01em;color:var(--curva);margin-bottom:.35em}
+.hero p.lead{font-size:clamp(1.05rem,2.2vw,1.35rem);margin:.8em 0 1em}
+.acoes{display:flex;flex-wrap:wrap;gap:10px}
+.rosa{position:absolute;top:clamp(16px,4vw,40px);right:clamp(16px,4vw,40px);width:clamp(80px,12vw,140px);animation:gira 2.6s .3s both cubic-bezier(.2,.9,.3,1)}
+@keyframes gira{from{transform:rotate(-200deg);opacity:0}}
+
+.desafio{margin-top:22px;background:var(--ink);color:#fff;border-radius:20px;padding:clamp(22px,4vw,44px);display:grid;gap:16px}
+.desafio .cont{color:#9fc1de;font-size:.95rem}
+.desafio .q{font-family:var(--disp);font-weight:800;font-size:clamp(1.6rem,4.2vw,3.2rem);line-height:1.08;margin:0;max-width:22ch}
+.desafio .a{font-size:clamp(1.05rem,2vw,1.4rem);background:rgba(255,255,255,.08);border-left:5px solid var(--sol);border-radius:8px;padding:12px 16px;max-width:60ch;display:none}
+.desafio .a.on{display:block}
+.desafio .acoes .b.alt{background:transparent;color:#fff;border-color:rgba(255,255,255,.5)}
+
+/* ---------- cronômetro em tela cheia ---------- */
+.ov{position:fixed;inset:0;z-index:50;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  background:var(--ink);color:#fff;padding:calc(env(safe-area-inset-top,0px) + 20px) 20px calc(env(safe-area-inset-bottom,0px) + 20px);text-align:center;transition:background .4s}
+.ov.on{display:flex}
+.ov .fechar{position:absolute;top:calc(env(safe-area-inset-top,0px) + 14px);right:16px;background:rgba(255,255,255,.12);border:0;color:inherit;border-radius:99px;padding:8px 16px;cursor:pointer}
+#tEtapa{font-family:var(--disp);font-size:clamp(1.3rem,3.5vw,2.4rem);font-weight:600;color:#9fc1de}
+#tBig{font-family:var(--disp);font-weight:800;font-size:min(27vw,42vh);line-height:.9;font-variant-numeric:tabular-nums;letter-spacing:-.04em}
+.tbar{width:min(900px,90vw);height:12px;border-radius:99px;background:rgba(255,255,255,.15);overflow:hidden}
+#tBar{height:100%;background:var(--sol);transform-origin:left;transition:transform 1s linear}
+.ov .acoes{justify-content:center}
+.ov .b.alt{background:transparent;color:inherit;border-color:currentColor}
+.ov select{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.35);border-radius:9px;padding:9px 12px}
+.ov select option{color:#13304a}
+#timerOv[data-st="quase"]{background:var(--sol);color:var(--ink)}
+#timerOv[data-st="quase"] #tEtapa{color:var(--ink)}
+#timerOv[data-st="quase"] #tBar{background:var(--ink)}
+#timerOv[data-st="fim"]{background:var(--estrada)}
+#timerOv[data-st="fim"] #tBig{animation:pisca 1s steps(2) infinite}
+@keyframes pisca{50%{opacity:.25}}
+
+/* ---------- sorteio ---------- */
+.sort-in{display:grid;grid-template-columns:minmax(260px,380px) 1fr;gap:16px;align-items:start}
+@media(max-width:860px){.sort-in{grid-template-columns:1fr}}
+textarea{width:100%;min-height:260px;border:1px solid var(--line);border-radius:10px;padding:10px;font-size:.95rem;resize:vertical}
+.gcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.gcard{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;border-top:8px solid var(--c)}
+.gcard.deal{animation:deal .45s both cubic-bezier(.2,.9,.3,1.2);animation-delay:calc(var(--k) * 110ms)}
+@keyframes deal{from{opacity:0;transform:translateY(24px) rotate(-3deg) scale(.95)}}
+.gcard .in{padding:12px 16px}
+.gcard h3{margin:0;font-size:1.35rem;color:var(--c)}
+.gcard .tema{font-size:.88rem;color:var(--muted);margin-bottom:6px}
+.gcard ul{list-style:none;margin:0;padding:0}
+.gcard li{padding:4px 0;border-bottom:1px dashed var(--line);display:flex;gap:8px;align-items:baseline}
+.gcard li small{color:var(--muted);margin-left:auto;white-space:nowrap}
+.secreta{margin-top:10px;width:100%;border:2px dashed var(--c);background:#fafbf8;border-radius:10px;padding:10px 12px;text-align:left;cursor:pointer;min-height:64px}
+.secreta .v{display:none}.secreta.rev .v{display:block}.secreta.rev .f{display:none}
+.secreta.rev{border-style:solid;background:color-mix(in srgb,var(--c) 10%,#fff)}
+.vazio{border:2px dashed var(--line);border-radius:14px;padding:30px;text-align:center;color:var(--muted)}
+#sorteioOv #nomeSort{font-family:var(--disp);font-weight:800;font-size:clamp(2.6rem,11vw,8rem);line-height:1;max-width:95vw;overflow-wrap:anywhere}
+#sorteioOv.fixo #nomeSort{color:var(--sol)}
+
+/* ---------- placar ---------- */
+.placar{display:grid;gap:12px}
+.prow{background:#fff;border:1px solid var(--line);border-left:10px solid var(--c);border-radius:14px;padding:12px 16px;
+  display:grid;grid-template-columns:minmax(150px,220px) 1fr auto;gap:14px;align-items:center}
+@media(max-width:760px){.prow{grid-template-columns:1fr auto}.prow .med{grid-column:1/-1}}
+.prow .nm{font-family:var(--disp);font-weight:800;font-size:1.35rem;color:var(--c)}
+.prow .nm small{display:block;font-family:var(--body);font-weight:400;font-size:.82rem;color:var(--muted)}
+.prow .barra{height:14px;background:var(--soft);border-radius:99px;overflow:hidden;margin-bottom:8px}
+.prow .barra i{display:block;height:100%;background:var(--c);border-radius:99px;transition:width .5s cubic-bezier(.3,1.3,.5,1)}
+.prow .pts{font-family:var(--disp);font-weight:800;font-size:2.6rem;line-height:1;font-variant-numeric:tabular-nums;min-width:2.2ch;text-align:right;position:relative}
+.prow.lider .pts::before{content:"🏆";font-size:1.4rem;position:absolute;left:-1.6rem;top:.3rem}
+.pop{position:absolute;right:0;top:-.4em;font-size:1.1rem;color:var(--verde);animation:sobe .9s forwards;pointer-events:none}
+.pop.neg{color:var(--estrada)}
+@keyframes sobe{to{transform:translateY(-28px);opacity:0}}
+.med{display:flex;flex-wrap:wrap;gap:5px}
+.med button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:4px 8px;cursor:pointer;font-size:.85rem}
+.med button:hover{border-color:var(--c)}
+.hist{font-size:1.05rem;letter-spacing:2px;min-height:1.3em;overflow-wrap:anywhere}
+
+/* ---------- missão do mapa ---------- */
+.missao{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 16px;margin-bottom:12px}
+.missao .cab{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;margin-bottom:8px}
+.missao .cab b{font-family:var(--disp);font-size:1.2rem}
+.missao .nivel{font-weight:700;color:var(--curva)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips span{border:1.5px solid var(--line);border-radius:99px;padding:3px 11px;font-size:.86rem;color:var(--muted);background:#fafbf8}
+.chips span.ok{border-color:var(--verde);color:#fff;background:var(--verde)}
+.chips span.ok::after{content:" ✓"}
+.missao.completa{border-color:var(--sol);box-shadow:0 0 0 3px var(--sol)}
+
+/* ---------- ideias ---------- */
+.ideias{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.ideia{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.ideia h3{margin:.1em 0 .35em;font-size:1.2rem}
+.ideia .ic{font-size:2rem;line-height:1}
+.ideia p{margin:.3em 0;font-size:.95rem}
+.ideia .tag{display:inline-block;font-size:.8rem;border-radius:6px;padding:1px 8px;background:var(--soft);color:var(--ink);margin-right:4px}
+
+/* ---------- mapa (herdado) ---------- */
 .mapwrap{display:grid;grid-template-columns:230px 1fr 290px;gap:12px;align-items:start}
 @media(max-width:1100px){.mapwrap{grid-template-columns:1fr}}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
-.panel h3{margin:.2em 0 .5em;font-size:.95rem;color:var(--acc-d)}
+.panel h3{margin:.2em 0 .5em;font-size:1rem;color:var(--ink)}
 .tools{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .tools button,.ltype button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 6px;cursor:pointer;font-size:.85rem;text-align:left}
-.tools button.on,.ltype button.on,.syms button.on{border-color:var(--acc);background:var(--soft);box-shadow:inset 0 0 0 1px var(--acc)}
+.tools button.on,.ltype button.on,.syms button.on{border-color:var(--azul);background:var(--soft);box-shadow:inset 0 0 0 1px var(--azul)}
 .ltype{display:flex;flex-direction:column;gap:5px}
 .ltype span.sw{display:inline-block;width:26px;height:0;vertical-align:middle;margin-right:6px;border-top-width:5px}
 .syms{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
 .syms button{font-size:1.35rem;padding:4px 0;border:1px solid var(--line);background:#fff;border-radius:8px;cursor:pointer}
 .symname{font-size:.82rem;color:var(--muted);min-height:1.2em;margin-top:4px}
-label.f{display:block;font-size:.83rem;color:var(--muted);margin-top:8px}
-input[type=text],input[type=number]{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font-size:.9rem}
+label.f{display:block;font-size:.85rem;color:var(--muted);margin-top:8px}
+input[type=text],input[type=number]{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font-size:.92rem}
 .canvasbox{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px}
 canvas#map{width:100%;height:auto;display:block;border-radius:8px;touch-action:none;cursor:crosshair;background:#fdfcf8;position:relative;z-index:1}
 .stage{position:relative;border-radius:8px;overflow:hidden}
 #gframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:none;z-index:0}
 .stage.g canvas#map{background:transparent}
 .stage.mover canvas#map{pointer-events:none}
-.stage.mover{outline:3px solid var(--acc2)}
+.stage.mover{outline:3px solid var(--sol)}
 .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .legend div{font-size:.88rem;display:flex;align-items:center;gap:6px;margin:3px 0}
 .notes .n{border-top:1px dashed var(--line);padding:6px 0}
 .notes .n b{font-size:.88rem}
 .notes input{margin-top:3px}
-.hint{font-size:.82rem;color:var(--muted);margin:.4em 0}
 .gmaps{display:flex;flex-wrap:wrap;align-items:center;gap:6px;background:var(--soft);border-radius:8px;padding:8px;margin-bottom:8px}
-.gmaps b{font-size:.9rem;color:var(--acc-d)}
+.gmaps b{font-size:.9rem;color:var(--ink)}
 .gmaps input{flex:1;min-width:220px;width:auto}
-.trazer{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px;border-top:1px solid #cfe3d8;padding-top:7px;margin-top:2px}
+.trazer{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px;border-top:1px solid #c9dbea;padding-top:7px;margin-top:2px}
 .trazer select{padding:6px;border:1px solid var(--line);border-radius:6px;font-size:.88rem;background:#fff}
 .trazer .hint{margin:0}
 .crow{border-top:1px dashed var(--line);padding:7px 0;display:grid;grid-template-columns:1fr 1fr;gap:4px}
 .crow input{font-size:.85rem;padding:5px 6px}
 .crow .res{grid-column:1/3;display:flex;align-items:center;gap:6px;font-size:.88rem}
 .crow .res input{width:80px}
-.crow .res b{flex:1;color:var(--acc-d);white-space:nowrap}
+.crow .res b{flex:1;color:var(--ink);white-space:nowrap}
 .mini{border:1px solid var(--line);background:#fff;border-radius:6px;cursor:pointer;padding:3px 7px;font-size:.85rem}
 .mrow{border-top:1px dashed var(--line);padding:6px 0;font-size:.88rem}
-.mrow b{color:var(--acc-d)}
-@media print{header nav,.noprint{display:none!important}#tab-mapa{display:none!important}#tab-dinamica{display:block!important}body{background:#fff}.card{break-inside:avoid;border-color:#bbb}}
+.mrow b{color:var(--ink)}
+
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition:none!important}}
+@media print{header.top,.noprint,.ov{display:none!important}.tab{display:none!important}#tab-dinamica{display:block!important}body{background:#fff}.card{break-inside:avoid;border-color:#bbb}}
 </style>
 </head>
 <body>
-<header>
-  <h1>🗺️ Mapeamento Participativo — Aula de Geografia</h1>
-  <nav>
-    <button class="on" data-tab="dinamica">📋 Dinâmica (professor)</button>
-    <button data-tab="mapa">✏️ Mapa do grupo</button>
+<header class="top">
+  <div class="marca">
+    <svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="none" stroke="#ffc933" stroke-width="2.5"/><path d="M20 5 L25 20 L20 35 L15 20Z" fill="#fff"/><path d="M20 5 L25 20 L15 20Z" fill="#d9432f"/></svg>
+    Missão Cartógrafos
+  </div>
+  <nav class="tabs" role="tablist" aria-label="Seções">
+    <button class="on" data-tab="abertura" role="tab">🚀 Abertura</button>
+    <button data-tab="dinamica" role="tab">📋 Plano da aula</button>
+    <button data-tab="sorteio" role="tab">🎲 Grupos</button>
+    <button data-tab="placar" role="tab">🏆 Placar</button>
+    <button data-tab="mapa" role="tab">✏️ Mapa do grupo</button>
+    <button data-tab="ideias" role="tab">💡 Ideias extras</button>
   </nav>
+  <button class="tchip" id="tChip" title="Abrir cronômetro em tela cheia">⏱️ <span id="tChipTxt">10:00</span></button>
 </header>
 
 <main>
-<!-- ============ DINÂMICA ============ -->
-<section id="tab-dinamica" class="tab on">
-  <div class="card noprint">
-    <h2>⏱️ Cronômetro da etapa</h2>
-    <div class="timer">
-      <div class="t" id="tdisp">10:00</div>
-      <button class="b alt" onclick="setT(5)">5 min</button>
-      <button class="b alt" onclick="setT(10)">10 min</button>
-      <button class="b alt" onclick="setT(15)">15 min</button>
-      <button class="b alt" onclick="setT(25)">25 min</button>
-      <button class="b" id="tgo" onclick="togT()">▶ Iniciar</button>
-      <button class="b warn" onclick="setT(tBase/60)">↺</button>
-      <button class="b alt" onclick="window.print()">🖨️ Imprimir plano</button>
+<!-- ============ ABERTURA ============ -->
+<section id="tab-abertura" class="tab on">
+  <div class="hero">
+    <svg class="topo" id="topo" viewBox="0 0 1200 560" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg>
+    <span class="pin" style="left:72%;top:52%">📍</span>
+    <svg class="rosa" viewBox="0 -10 100 110" aria-hidden="true">
+      <circle cx="50" cy="50" r="44" fill="#fff" stroke="#13304a" stroke-width="2"/>
+      <circle cx="50" cy="50" r="36" fill="none" stroke="#13304a" stroke-width=".8" stroke-dasharray="2 3"/>
+      <path d="M50 8 L57 50 L50 92 L43 50Z" fill="#13304a"/><path d="M50 8 L57 50 L43 50Z" fill="#d9432f"/>
+      <path d="M8 50 L50 44 L92 50 L50 56Z" fill="#13304a" opacity=".45"/>
+      <text x="50" y="6" text-anchor="middle" font-family="Bricolage Grotesque, sans-serif" font-weight="800" font-size="11" fill="#13304a" dy="-1">N</text>
+    </svg>
+    <div class="hero-txt">
+      <h1><span>Aula de Geografia</span>Missão Cartógrafos</h1>
+      <p class="lead">Hoje vocês vão fazer o mapa que o Google não faz: o do lugar onde a gente estuda, com o que só quem vive aqui conhece.</p>
+      <div class="acoes">
+        <button class="b big sol" onclick="document.getElementById('desafio').scrollIntoView({behavior:'smooth'})">⚡ Desafio relâmpago</button>
+        <button class="b big" data-ir="sorteio">🎲 Sortear os grupos</button>
+        <button class="b big alt" onclick="abrirTimer()">⏱️ Cronômetro</button>
+      </div>
     </div>
   </div>
 
+  <div class="desafio" id="desafio">
+    <div class="cont" id="dCont">Desafio 1 de 6</div>
+    <p class="q" id="dQ"></p>
+    <div class="a" id="dA"></div>
+    <div class="acoes">
+      <button class="b sol" id="dRev" onclick="revDes()">👀 Mostrar resposta</button>
+      <button class="b alt" onclick="passaDes(-1)">◀ Anterior</button>
+      <button class="b alt" onclick="passaDes(1)">Próximo ▶</button>
+      <button class="b alt" onclick="quemResponde()">🎯 Sortear quem responde</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PLANO ============ -->
+<section id="tab-dinamica" class="tab on">
+  <div class="card noprint" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
+    <div><h2 style="margin:0">📋 Plano da aula</h2><p class="hint" style="margin:0">Roteiro para o professor. O cronômetro fica no topo da tela, em qualquer aba.</p></div>
+    <div class="acoes"><button class="b" onclick="abrirTimer()">⏱️ Cronômetro em tela cheia</button><button class="b alt" onclick="window.print()">🖨️ Imprimir plano</button></div>
+  </div>
   <div class="grid2">
     <div class="card">
       <h2>🎯 Proposta</h2>
@@ -179,10 +351,61 @@ canvas#map{width:100%;height:auto;display:block;border-radius:8px;touch-action:n
       </table>
     </div>
   </div>
+  <div class="card">
+    <h2>🦺 Combinados para o trabalho de campo</h2>
+    <ul>
+      <li>O grupo anda sempre junto; ninguém sai do setor combinado.</li>
+      <li>Atravessar rua só com o professor ou em faixa com semáforo.</li>
+      <li>Fotos de lugares, não de pessoas sem permissão.</li>
+      <li>Ao ouvir o sinal (apito ou o alarme do cronômetro), todos voltam ao ponto de encontro.</li>
+      <li>Entrevista é conversa educada: apresentar-se, explicar a atividade e agradecer.</li>
+    </ul>
+    <p class="hint">Vale ⚠️ −1 no placar para quem descumprir, e 🤝 +1 para o grupo mais organizado.</p>
+  </div>
+</section>
+
+<!-- ============ SORTEIO ============ -->
+<section id="tab-sorteio" class="tab">
+  <div class="sort-in">
+    <div class="card">
+      <h2>🎲 Sorteio dos grupos</h2>
+      <label class="f" for="nomes">Nomes dos alunos (um por linha)</label>
+      <textarea id="nomes" placeholder="Ana&#10;Bruno&#10;Carla&#10;…"></textarea>
+      <div class="row">
+        <button class="b alt" onclick="numerar()">Usar números 1 a 30</button>
+        <label class="f" style="margin:0;display:flex;align-items:center;gap:6px">Grupos:
+          <input type="number" id="nGrupos" value="6" min="2" max="10" style="width:64px"></label>
+      </div>
+      <p class="hint" id="contaNomes">0 alunos</p>
+      <div class="row">
+        <button class="b big sol" onclick="sortear()">🎲 Sortear grupos e funções</button>
+        <button class="b alt" onclick="quemResponde()">🎯 Sortear um aluno</button>
+      </div>
+      <p class="hint">Cada grupo recebe uma função para cada aluno e uma <b>missão secreta</b>. Mostre a missão só para o grupo dela — as outras equipes não sabem o que vocês estão procurando.</p>
+    </div>
+    <div>
+      <div class="gcards" id="gcards"><div class="vazio">Coloque os nomes (ou use os números) e clique em <b>Sortear grupos e funções</b>. Os grupos aparecem aqui e já entram no placar.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ PLACAR ============ -->
+<section id="tab-placar" class="tab">
+  <div class="card" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
+    <div><h2 style="margin:0">🏆 Placar da expedição</h2>
+      <p class="hint" style="margin:0">Clique numa conquista para dar os pontos. O placar fica salvo neste navegador até você zerar.</p></div>
+    <div class="acoes"><button class="b alt" onclick="desfazPonto()">↩️ Desfazer último</button><button class="b warn" onclick="zerarPlacar()">Zerar placar</button></div>
+  </div>
+  <div class="placar" id="placar"></div>
 </section>
 
 <!-- ============ MAPA ============ -->
 <section id="tab-mapa" class="tab">
+  <div class="missao" id="missao">
+    <div class="cab"><b>🎯 Missão do mapa</b><span id="missaoCont">0 de 9</span><span class="nivel" id="missaoNivel">🎒 Aprendizes</span>
+      <span class="hint" style="margin:0">Os itens ficam verdes sozinhos conforme o grupo completa o mapa.</span></div>
+    <div class="chips" id="missaoChips"></div>
+  </div>
   <div class="mapwrap">
     <!-- ferramentas -->
     <div class="panel">
@@ -284,27 +507,140 @@ canvas#map{width:100%;height:auto;display:block;border-radius:8px;touch-action:n
     </div>
   </div>
 </section>
+
+<!-- ============ IDEIAS ============ -->
+<section id="tab-ideias" class="tab">
+  <div class="card"><h2>💡 Ideias para deixar a dinâmica ainda melhor</h2>
+    <p>Escolha uma ou duas para variar. Todas funcionam com 30 alunos em 6 grupos e com o material que a escola já tem.</p></div>
+  <div class="ideias">
+    <div class="ideia"><div class="ic">🗝️</div><h3>Caça ao tesouro cartográfico</h3>
+      <p>Antes da aula, esconda 6 envelopes na área. Cada pista usa direção e passos: “do portão, 30 passos para o Leste”. O último envelope tem a missão final.</p>
+      <p><span class="tag">Orientação</span><span class="tag">Escala</span></p></div>
+    <div class="ideia"><div class="ic">👂</div><h3>Mapa dos sentidos</h3>
+      <p>Além do que se vê, marquem sons, cheiros, sol e sombra. Onde é barulhento? Onde é fresco? Isso vira conversa sobre qualidade de vida e ilha de calor.</p>
+      <p><span class="tag">Percepção</span><span class="tag">Clima urbano</span></p></div>
+    <div class="ideia"><div class="ic">⏳</div><h3>Antes e depois</h3>
+      <p>No Google Earth (versão para computador), a ferramenta de imagens históricas mostra a área anos atrás. Projete as duas imagens: o que foi construído, o que sumiu?</p>
+      <p><span class="tag">Transformação do espaço</span></p></div>
+    <div class="ideia"><div class="ic">🟢</div><h3>Mapa de calor da turma</h3>
+      <p>Imprima a área bem grande. Cada aluno cola um adesivo verde onde se sente bem e um vermelho onde se sente inseguro. O padrão aparece na hora.</p>
+      <p><span class="tag">Lugar</span><span class="tag">Cartografia social</span></p></div>
+    <div class="ideia"><div class="ic">🌡️</div><h3>Sol × sombra</h3>
+      <p>Com um termômetro simples (ou a mão no chão), comparem o asfalto no sol, a grama e a sombra da árvore. Registrem no mapa com o símbolo 🌳 e a observação.</p>
+      <p><span class="tag">Meio ambiente</span></p></div>
+    <div class="ideia"><div class="ic">🎙️</div><h3>Memória do lugar</h3>
+      <p>O entrevistador de cada grupo conversa com o funcionário mais antigo da escola ou um morador: “como era aqui antes?”. A resposta vai para a observação de um ponto.</p>
+      <p><span class="tag">Tempo e espaço</span></p></div>
+    <div class="ideia"><div class="ic">📦</div><h3>Maquete de sucata</h3>
+      <p>Na aula seguinte, cada grupo transforma seu setor em maquete com caixas e papelão. Juntando as 6, a turma tem a área inteira em 3D.</p>
+      <p><span class="tag">Visão vertical × oblíqua</span></p></div>
+    <div class="ideia"><div class="ic">✉️</div><h3>Carta com o mapa anexo</h3>
+      <p>O problema mais votado vira uma carta à direção, à prefeitura ou à administração regional, com o mapa da turma anexado como prova. Mostra que mapa também é ferramenta de cidadania.</p>
+      <p><span class="tag">Cidadania</span></p></div>
+    <div class="ideia"><div class="ic">🖼️</div><h3>Exposição no corredor</h3>
+      <p>Imprimam os 6 PNGs e montem o “mapa da turma” no mural. Outras turmas votam com um adesivo no mapa mais completo, e o vencedor ganha pontos extras no placar.</p>
+      <p><span class="tag">Socialização</span></p></div>
+  </div>
+</section>
 </main>
 
+<!-- cronômetro -->
+<div class="ov" id="timerOv" role="dialog" aria-label="Cronômetro">
+  <button class="fechar" onclick="fecharTimer()">✕ Fechar (Esc)</button>
+  <div id="tEtapa">Etapa da aula</div>
+  <div id="tBig">10:00</div>
+  <div class="tbar"><div id="tBar"></div></div>
+  <div class="acoes">
+    <select id="tSel" aria-label="Escolher etapa">
+      <option value="">Escolher etapa…</option>
+      <option value="10|Mapa mental">1. Mapa mental (10 min)</option>
+      <option value="5|Planejamento">2. Planejamento (5 min)</option>
+      <option value="25|Trabalho de campo">3. Trabalho de campo (25 min)</option>
+      <option value="20|Mapa digital">4. Mapa digital (20 min)</option>
+      <option value="20|Socialização">5. Socialização (20 min)</option>
+      <option value="10|Reflexão e proposta">6. Reflexão e proposta (10 min)</option>
+      <option value="3|Apresentação do grupo">Apresentação de um grupo (3 min)</option>
+      <option value="1|Desafio relâmpago">Desafio relâmpago (1 min)</option>
+    </select>
+    <button class="b alt" onclick="setT(1)">1</button><button class="b alt" onclick="setT(3)">3</button>
+    <button class="b alt" onclick="setT(5)">5</button><button class="b alt" onclick="setT(10)">10</button>
+    <button class="b alt" onclick="setT(15)">15</button><button class="b alt" onclick="setT(25)">25 min</button>
+  </div>
+  <div class="acoes">
+    <button class="b big sol" id="tGo" onclick="togT()">▶ Iniciar</button>
+    <button class="b big alt" onclick="setT(tBase/60)">↺ Recomeçar</button>
+  </div>
+  <p class="hint" style="color:inherit;opacity:.7">Espaço inicia ou pausa. No último minuto a tela fica amarela.</p>
+</div>
+
+<!-- sorteio de aluno -->
+<div class="ov" id="sorteioOv" role="dialog" aria-label="Aluno sorteado">
+  <button class="fechar" onclick="sorteioOv.classList.remove('on')">✕ Fechar (Esc)</button>
+  <div id="tEtapa2" style="font-family:var(--disp);font-size:1.6rem;color:#9fc1de">Quem responde é…</div>
+  <div id="nomeSort">?</div>
+  <div id="grupoSort" style="font-size:1.3rem;color:#9fc1de"></div>
+  <button class="b big sol" onclick="quemResponde()">🎯 Sortear de novo</button>
+</div>
+
 <script>
+/* ---------- utilidades ---------- */
+const $=s=>document.querySelector(s);
+const LS={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},
+          set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const escH=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
 /* ---------- abas ---------- */
-document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
-  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));
-  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.id==='tab-'+b.dataset.tab));
-  if(b.dataset.tab==='mapa') render();
-});
+const TABS=[...document.querySelectorAll('.tabs button')];
+function abrirAba(id){
+  TABS.forEach(b=>{const on=b.dataset.tab===id;b.classList.toggle('on',on);b.setAttribute('aria-selected',on)});
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.id==='tab-'+id));
+  if(id==='mapa'){render();checkMissao()}
+  if(id==='placar')renderPlacar();
+  window.scrollTo({top:0});
+}
+TABS.forEach(b=>b.onclick=()=>abrirAba(b.dataset.tab));
+document.querySelectorAll('[data-ir]').forEach(b=>b.onclick=()=>abrirAba(b.dataset.ir));
+
+/* ---------- curvas de nível da abertura ---------- */
+(function(){
+  const svg=$('#topo');let out='',i=0;
+  const morros=[[840,300,11,1.35],[240,150,6,1.2],[1120,40,4,1]];
+  morros.forEach(([cx,cy,n,ex])=>{const ph=Math.random()*6;
+    for(let k=1;k<=n;k++){const r=k*32;let d='';
+      for(let s=0;s<=72;s++){const a=s/72*Math.PI*2,
+        rr=r*(1+.17*Math.sin(3*a+ph+k*.25)+.07*Math.sin(5*a-ph*1.3)+.03*Math.sin(9*a+k));
+        d+=(s?'L':'M')+(cx+rr*Math.cos(a)*ex).toFixed(1)+' '+(cy+rr*Math.sin(a)).toFixed(1)}
+      out+=`<path pathLength="1" d="${d}Z"${k%5===0?' class="mestra"':''} style="--i:${i++}"/>`}});
+  out+=`<path pathLength="1" class="rio" style="--i:4" d="M-20 470 C160 430 260 520 420 470 S640 360 700 420 S880 560 1220 500"/>`;
+  out+=`<path pathLength="1" class="via" style="--i:8" d="M560 -10 L600 180 L520 330 L560 580"/>`;
+  svg.innerHTML=out;
+})();
 
 /* ---------- cronômetro ---------- */
 let tBase=600,tLeft=600,tInt=null;
 const fmt=s=>String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
-function setT(m){clearInterval(tInt);tInt=null;tBase=tLeft=Math.round(m*60);tdisp.textContent=fmt(tLeft);tgo.textContent='▶ Iniciar';tdisp.style.color=''}
+const timerOv=$('#timerOv'),tChip=$('#tChip');
+function tShow(){const s=Math.max(tLeft,0);$('#tBig').textContent=fmt(s);$('#tChipTxt').textContent=fmt(s);
+  $('#tBar').style.transform=`scaleX(${tBase?s/tBase:0})`;
+  const st=tLeft<=0?'fim':(tLeft<=60&&tInt?'quase':'');timerOv.dataset.st=st;tChip.dataset.st=st}
+function setT(m){clearInterval(tInt);tInt=null;tBase=tLeft=Math.round(m*60);$('#tGo').textContent='▶ Iniciar';tShow()}
 function togT(){
-  if(tInt){clearInterval(tInt);tInt=null;tgo.textContent='▶ Continuar';return}
-  tgo.textContent='⏸ Pausar';
-  tInt=setInterval(()=>{tLeft--;tdisp.textContent=fmt(Math.max(tLeft,0));
-    if(tLeft<=0){clearInterval(tInt);tInt=null;tgo.textContent='▶ Iniciar';tdisp.style.color='#b94a3a';beep()}},1000);
+  if(tInt){clearInterval(tInt);tInt=null;$('#tGo').textContent='▶ Continuar';tShow();return}
+  if(tLeft<=0)tLeft=tBase;
+  $('#tGo').textContent='⏸ Pausar';
+  tInt=setInterval(()=>{tLeft--;tShow();
+    if(tLeft<=0){clearInterval(tInt);tInt=null;$('#tGo').textContent='▶ Iniciar';tShow();beep()}},1000);
+  tShow();
 }
-function beep(){try{const a=new(window.AudioContext||window.webkitAudioContext)();[0,.35,.7].forEach(d=>{const o=a.createOscillator(),g=a.createGain();o.frequency.value=880;o.connect(g);g.connect(a.destination);g.gain.value=.2;o.start(a.currentTime+d);o.stop(a.currentTime+d+.22)})}catch(e){}}
+function abrirTimer(){timerOv.classList.add('on');$('#tGo').focus()}
+function fecharTimer(){timerOv.classList.remove('on')}
+tChip.onclick=abrirTimer;
+$('#tSel').onchange=e=>{if(!e.target.value)return;const [m,n]=e.target.value.split('|');$('#tEtapa').textContent=n;setT(+m)};
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){fecharTimer();$('#sorteioOv').classList.remove('on')}
+  if(e.key===' '&&timerOv.classList.contains('on')&&!['SELECT','BUTTON','INPUT','TEXTAREA'].includes(e.target.tagName)){e.preventDefault();togT()}
+});
+function beep(){try{const a=new(window.AudioContext||window.webkitAudioContext)();[0,.35,.7,1.05].forEach(d=>{const o=a.createOscillator(),g=a.createGain();o.frequency.value=880;o.connect(g);g.connect(a.destination);g.gain.value=.25;o.start(a.currentTime+d);o.stop(a.currentTime+d+.22)})}catch(e){}}
 
 /* ---------- dados do mapa ---------- */
 const LINES={
@@ -348,7 +684,7 @@ esc.addEventListener('input',renderMed);
 function save(){hist.push(JSON.stringify(items));if(hist.length>80)hist.shift()}
 function undo(){if(!hist.length)return;items=JSON.parse(hist.pop());refresh()}
 function clearAll(){if(!items.length)return;if(!confirm('Apagar todo o desenho?'))return;save();items=[];refresh()}
-function refresh(){render();renderSide()}
+function refresh(){render();renderSide();checkMissao()}
 
 /* ---------- medições ---------- */
 const MED_COR='#6a3fb5';
@@ -385,25 +721,25 @@ function drawScene(c,W,H){
     if(i.t==='m'){n++;
       c.font='34px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';c.textAlign='center';c.textBaseline='middle';
       c.fillText(i.e,i.x,i.y);
-      c.fillStyle='#22302a';c.beginPath();c.arc(i.x+18,i.y-18,10,0,7);c.fill();
+      c.fillStyle='#13304a';c.beginPath();c.arc(i.x+18,i.y-18,10,0,7);c.fill();
       c.fillStyle='#fff';c.font='bold 12px system-ui,sans-serif';c.fillText(n,i.x+18,i.y-17.5);
     }
     if(i.t==='x'){c.font='bold 22px system-ui,sans-serif';c.textAlign='center';c.textBaseline='middle';
-      c.lineWidth=5;c.strokeStyle='#fff';c.strokeText(i.s,i.x,i.y);c.fillStyle='#22302a';c.fillText(i.s,i.x,i.y)}
+      c.lineWidth=5;c.strokeStyle='#fff';c.strokeText(i.s,i.x,i.y);c.fillStyle='#13304a';c.fillText(i.s,i.x,i.y)}
   });
   items.filter(i=>i.t==='d').forEach((d,k)=>drawMeasure(c,d,k+1));
   // Norte
-  const nx=W-60,ny=70;c.save();c.fillStyle='#22302a';c.strokeStyle='#22302a';c.lineWidth=2;
+  const nx=W-60,ny=70;c.save();c.fillStyle='#13304a';c.strokeStyle='#13304a';c.lineWidth=2;
   c.beginPath();c.moveTo(nx,ny-38);c.lineTo(nx+14,ny+10);c.lineTo(nx,ny);c.closePath();c.fill();
   c.beginPath();c.moveTo(nx,ny-38);c.lineTo(nx-14,ny+10);c.lineTo(nx,ny);c.closePath();c.stroke();
-  c.fillStyle='rgba(253,252,248,.85)';c.fillRect(nx-12,ny+12,24,24);c.fillStyle='#22302a';
+  c.fillStyle='rgba(253,252,248,.85)';c.fillRect(nx-12,ny+12,24,24);c.fillStyle='#13304a';
   c.font='bold 20px system-ui';c.textAlign='center';c.textBaseline='middle';c.fillText('N',nx,ny+25);c.restore();
   // escala
   const m=+esc.value||10,sx=30,sy=H-40;c.save();
   c.fillStyle='rgba(253,252,248,.9)';c.fillRect(sx-12,sy-30,150+60,52);
-  for(let k=0;k<3;k++){c.fillStyle=k%2?'#fff':'#22302a';c.fillRect(sx+k*50,sy,50,10)}
-  c.strokeStyle='#22302a';c.strokeRect(sx,sy,150,10);
-  c.fillStyle='#22302a';c.font='13px system-ui';c.textAlign='center';c.textBaseline='bottom';
+  for(let k=0;k<3;k++){c.fillStyle=k%2?'#fff':'#13304a';c.fillRect(sx+k*50,sy,50,10)}
+  c.strokeStyle='#13304a';c.strokeRect(sx,sy,150,10);
+  c.fillStyle='#13304a';c.font='13px system-ui';c.textAlign='center';c.textBaseline='bottom';
   [0,1,2,3].forEach(k=>c.fillText(String(Math.round(k*m*10)/10).replace('.',',')+(k===3?' m':''),sx+k*50,sy-3));c.restore();
   if(bg&&bgInfo){c.save();c.font='11px system-ui';c.textAlign='right';c.textBaseline='bottom';c.fillStyle='rgba(255,255,255,.85)';
     const t=bgInfo.credito,w=c.measureText(t).width+10;c.fillRect(W-w-4,H-20,w,18);c.fillStyle='#333';c.fillText(t,W-9,H-6);c.restore()}
@@ -619,24 +955,24 @@ function exportPNG(){
   const c=document.createElement('canvas');c.width=W+side+pad*3;c.height=top+Math.max(H,sideH)+pad*2+30;
   const x=c.getContext('2d');
   x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);
-  x.fillStyle='#22302a';x.font='bold 30px system-ui';x.textBaseline='top';x.fillText(titulo.value||'Mapa',pad,20);
+  x.fillStyle='#13304a';x.font='bold 30px system-ui';x.textBaseline='top';x.fillText(titulo.value||'Mapa',pad,20);
   x.font='16px system-ui';x.fillStyle='#5d6a62';
   x.fillText((grupo.value||'Grupo')+' • '+new Date().toLocaleDateString('pt-BR'),pad,58);
-  x.save();x.translate(pad,top);drawScene(x,W,H);x.strokeStyle='#22302a';x.lineWidth=2;x.strokeRect(0,0,W,H);x.restore();
+  x.save();x.translate(pad,top);drawScene(x,W,H);x.strokeStyle='#13304a';x.lineWidth=2;x.strokeRect(0,0,W,H);x.restore();
   // legenda
-  let lx=W+pad*2,ly=top;x.fillStyle='#235f45';x.font='bold 20px system-ui';x.fillText('Legenda',lx,ly);ly+=36;
+  let lx=W+pad*2,ly=top;x.fillStyle='#1f6fb2';x.font='bold 20px system-ui';x.fillText('Legenda',lx,ly);ly+=36;
   x.font='15px system-ui';x.textBaseline='middle';
   ls.forEach(k=>{const L=LINES[k];x.save();x.strokeStyle=L.cor;x.lineWidth=Math.min(L.w,10);x.setLineDash(L.dash);x.beginPath();x.moveTo(lx,ly);x.lineTo(lx+36,ly);x.stroke();x.restore();
-    x.fillStyle='#22302a';x.fillText(L.nome,lx+48,ly);ly+=28});
+    x.fillStyle='#13304a';x.fillText(L.nome,lx+48,ly);ly+=28});
   Object.entries(cnt).forEach(([e,n])=>{x.font='22px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif';x.fillText(e,lx+6,ly);
-    x.font='15px system-ui';x.fillStyle='#22302a';x.fillText(symName(e)+' ('+n+')',lx+48,ly);ly+=28});
+    x.font='15px system-ui';x.fillStyle='#13304a';x.fillText(symName(e)+' ('+n+')',lx+48,ly);ly+=28});
   if(ds.length){x.save();x.strokeStyle=MED_COR;x.lineWidth=3;x.setLineDash([10,6]);x.beginPath();x.moveTo(lx,ly);x.lineTo(lx+36,ly);x.stroke();x.restore();
-    x.font='15px system-ui';x.fillStyle='#22302a';x.fillText('Medição de distância',lx+48,ly);ly+=28}
-  if(medTxt.length){ly+=20;x.fillStyle='#235f45';x.font='bold 20px system-ui';x.fillText('Distâncias',lx,ly);ly+=30;
-    x.font='14px system-ui';x.fillStyle='#22302a';medLin.forEach(ls_=>ls_.forEach((t,j)=>{x.fillText(t,lx+(j?16:0),ly);ly+=20}));
+    x.font='15px system-ui';x.fillStyle='#13304a';x.fillText('Medição de distância',lx+48,ly);ly+=28}
+  if(medTxt.length){ly+=20;x.fillStyle='#1f6fb2';x.font='bold 20px system-ui';x.fillText('Distâncias',lx,ly);ly+=30;
+    x.font='14px system-ui';x.fillStyle='#13304a';medLin.forEach(ls_=>ls_.forEach((t,j)=>{x.fillText(t,lx+(j?16:0),ly);ly+=20}));
     if(cs.length){x.fillStyle='#5d6a62';x.fillText('Passo do grupo: '+String(+passo.value||0.7).replace('.',',')+' m',lx,ly);ly+=20}}
-  if(ms.length){ly+=20;x.fillStyle='#235f45';x.font='bold 20px system-ui';x.fillText('Observações',lx,ly);ly+=30;
-    ms.forEach((m,i)=>{x.fillStyle='#22302a';x.font='bold 14px system-ui';x.fillText((i+1)+'. '+symName(m.e),lx,ly);ly+=20;
+  if(ms.length){ly+=20;x.fillStyle='#1f6fb2';x.font='bold 20px system-ui';x.fillText('Observações',lx,ly);ly+=30;
+    ms.forEach((m,i)=>{x.fillStyle='#13304a';x.font='bold 14px system-ui';x.fillText((i+1)+'. '+symName(m.e),lx,ly);ly+=20;
       x.font='14px system-ui';x.fillStyle='#5d6a62';if(m.n)wrap(x,m.n,side-50).forEach(t=>{x.fillText(t,lx+16,ly);ly+=20})})}
   x.font='12px system-ui';x.fillStyle='#8a948e';x.textBaseline='bottom';
   x.fillText('Fonte: levantamento de campo dos alunos (mapeamento participativo).',pad,c.height-10);
@@ -676,8 +1012,137 @@ function abrirEarth(){
   window.open(q?'https://earth.google.com/web/search/'+encodeURIComponent(q):'https://earth.google.com/web/','_blank','noopener');
 }
 
+/* ---------- desafio relâmpago ---------- */
+const DESAFIOS=[
+  ['Todo mundo de pé: apontem para o Norte. Sem celular!','Pista: o Sol nasce do lado Leste. Aponte o braço direito para onde o Sol nasce — agora você está de frente para o Norte. Depois a gente confere com a bússola.'],
+  ['Chute rápido: quantos passos da porta da sala até o portão da escola?','Anotem os chutes no quadro. No trabalho de campo a gente mede de verdade — o grupo que chegar mais perto ganha 🎯 +2 no placar.'],
+  ['Quais 3 lugares do caminho até a escola quase todo mundo da turma conhece?','Esses são pontos de referência. Todo mapa começa por eles — e é por eles que a gente se orienta no dia a dia.'],
+  ['Um mapa sem título, sem legenda, sem Norte e sem escala serve para quê?','Para quase nada! Os elementos de um mapa são título, legenda, orientação, escala e fonte. Hoje o de vocês vai ter todos.'],
+  ['O Google Maps mostra onde a calçada é perigosa à noite?','Não. Quem sabe disso são vocês, que passam por lá. É por isso que o mapa da turma mostra coisas que nenhum mapa oficial mostra.'],
+  ['Escala 1:1 000 — 1 cm no mapa vale quantos metros na realidade?','10 metros. 1 cm × 1 000 = 1 000 cm, que é o mesmo que 10 m.']
+];
+let dI=0;
+function showDes(){const [q,a]=DESAFIOS[dI];$('#dCont').textContent=`Desafio ${dI+1} de ${DESAFIOS.length}`;
+  $('#dQ').textContent=q;$('#dA').textContent=a;$('#dA').classList.remove('on');$('#dRev').textContent='👀 Mostrar resposta'}
+function revDes(){const on=$('#dA').classList.toggle('on');$('#dRev').textContent=on?'🙈 Esconder resposta':'👀 Mostrar resposta'}
+function passaDes(d){dI=(dI+d+DESAFIOS.length)%DESAFIOS.length;showDes()}
+
+/* ---------- sorteio de grupos ---------- */
+const FUNCOES=[['🧭','Orientador(a)'],['📏','Medidor(a)'],['✏️','Cartógrafo(a)'],['📷','Registrador(a)'],['🎤','Relator(a)']];
+const TEMAS=['Infraestrutura','Meio ambiente','Mobilidade e acessibilidade','Serviços e comércio','Riscos e insegurança','Lugares afetivos e de lazer','Água e drenagem','Paisagem e memória','Uso do solo','Sons e sensações'];
+const CORES=['#1f6fb2','#2e8a4a','#d9432f','#a8612d','#7a4bb0','#c48a00','#0f8a8a','#c2427a','#4d5b6a','#6b8e23'];
+const MISSOES=[
+  'Encontrem o lugar mais barulhento e o mais silencioso da área e marquem os dois.',
+  'Descubram para onde vai a água da chuva: bueiros, calhas, poças, erosão.',
+  'Achem 3 obstáculos para quem usa cadeira de rodas ou empurra um carrinho de bebê.',
+  'Contem as árvores do setor e marquem a maior delas.',
+  'Perguntem a um funcionário ou morador: o que mudou aqui nos últimos 10 anos?',
+  'Encontrem um lugar que ninguém da turma costuma notar e expliquem por que ele importa.',
+  'Achem o ponto mais quente e o mais fresco da área (sol × sombra).',
+  'Descubram de onde vem o lixo que aparece no caminho e onde ele deveria ir.',
+  'Encontrem 2 placas, pichações ou marcas que contam algo sobre o lugar.',
+  'Meçam em passos a maior reta sem sombra da área.'
+];
+let grupos=LS.get('mc_grupos',null);
+const nomesEl=$('#nomes');
+nomesEl.value=LS.get('mc_nomes','');
+const listaNomes=()=>nomesEl.value.split('\n').map(s=>s.trim()).filter(Boolean);
+function contaNomes(){const n=listaNomes().length,g=+$('#nGrupos').value||6;
+  $('#contaNomes').textContent=n?`${n} aluno${n>1?'s':''} → ${g} grupos de ${Math.floor(n/g)}${n%g?' a '+Math.ceil(n/g):''}`:'Nenhum nome ainda'}
+nomesEl.addEventListener('input',()=>{LS.set('mc_nomes',nomesEl.value);contaNomes()});
+$('#nGrupos').addEventListener('input',contaNomes);
+function numerar(){nomesEl.value=Array.from({length:30},(_,i)=>'Aluno '+(i+1)).join('\n');LS.set('mc_nomes',nomesEl.value);contaNomes()}
+function embaralha(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function sortear(){
+  const ns=embaralha(listaNomes()),g=Math.max(2,Math.min(10,+$('#nGrupos').value||6));
+  if(ns.length<g){alert('Coloque pelo menos '+g+' nomes (ou clique em "Usar números 1 a 30").');return}
+  if(grupos&&!confirm('Sortear de novo? Os grupos atuais serão substituídos (o placar continua).'))return;
+  const miss=embaralha(MISSOES.map((_,i)=>i));
+  grupos=Array.from({length:g},(_,i)=>({nome:'Grupo '+(i+1),tema:TEMAS[i%TEMAS.length],missao:miss[i%miss.length],membros:[]}));
+  ns.forEach((n,i)=>grupos[i%g].membros.push({n,f:Math.floor(i/g)}));
+  LS.set('mc_grupos',grupos);syncPlacar();renderGrupos(true);
+}
+function renderGrupos(anima){
+  const box=$('#gcards');
+  if(!grupos){return}
+  box.innerHTML=grupos.map((G,i)=>`<div class="gcard${anima?' deal':''}" style="--c:${CORES[i%CORES.length]};--k:${i}">
+    <div class="in"><h3>${escH(G.nome)}</h3><div class="tema">Olhar temático: ${escH(G.tema)}</div>
+    <ul>${G.membros.map(m=>{const F=FUNCOES[m.f]||['🤝','Apoio'];return`<li><span>${F[0]}</span>${escH(m.n)}<small>${F[1]}</small></li>`}).join('')}</ul>
+    <button class="secreta" data-g="${i}"><span class="f">🕵️ <b>Missão secreta</b> — só o grupo pode ver. Toque para revelar.</span><span class="v">🕵️ <b>Missão secreta:</b> ${escH(MISSOES[G.missao])}</span></button>
+    </div></div>`).join('');
+  box.querySelectorAll('.secreta').forEach(b=>b.onclick=()=>b.classList.toggle('rev'));
+}
+
+/* sorteia um aluno para responder */
+let sortAnim=null;
+function quemResponde(){
+  const ns=listaNomes();const ov=$('#sorteioOv');
+  if(!ns.length){abrirAba('sorteio');nomesEl.focus();alert('Primeiro coloque os nomes da turma (ou use os números 1 a 30).');return}
+  ov.classList.add('on');ov.classList.remove('fixo');clearInterval(sortAnim);
+  const alvo=ns[Math.floor(Math.random()*ns.length)];let t=0;
+  const reduz=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const fim=()=>{clearInterval(sortAnim);$('#nomeSort').textContent=alvo;ov.classList.add('fixo');
+    const gi=grupos?grupos.findIndex(G=>G.membros.some(m=>m.n===alvo)):-1;
+    $('#grupoSort').textContent=gi>=0?grupos[gi].nome:''};
+  $('#grupoSort').textContent='';
+  if(reduz)return fim();
+  sortAnim=setInterval(()=>{$('#nomeSort').textContent=ns[Math.floor(Math.random()*ns.length)];if(++t>18)fim()},80);
+}
+
+/* ---------- placar ---------- */
+const MEDALHAS=[['🧭','Norte certo',2],['📏','Escala correta',2],['🔍','Detalhe que ninguém viu',3],['🕵️','Missão secreta cumprida',3],
+  ['🎯','Chute mais perto',2],['🤝','Equipe organizada',1],['🎤','Apresentação clara',2],['➕','+1 ponto',1],['⚠️','Fora das regras',-1]];
+let placar=LS.get('mc_placar',null),ultimo=[];
+function syncPlacar(){const g=grupos?grupos.length:6,old=placar||[];
+  placar=Array.from({length:g},(_,i)=>old[i]||{pts:0,log:[]});LS.set('mc_placar',placar)}
+function renderPlacar(pop){
+  if(!placar)syncPlacar();
+  const max=Math.max(1,...placar.map(p=>p.pts)),top=Math.max(...placar.map(p=>p.pts));
+  $('#placar').innerHTML=placar.map((p,i)=>{const G=grupos&&grupos[i],c=CORES[i%CORES.length];
+    return`<div class="prow${p.pts>0&&p.pts===top?' lider':''}" style="--c:${c}">
+      <div class="nm">${G?escH(G.nome):'Grupo '+(i+1)}<small>${G?escH(G.tema):''}</small></div>
+      <div><div class="barra"><i style="width:${Math.max(0,p.pts)/max*100}%"></i></div>
+        <div class="med">${MEDALHAS.map((m,k)=>`<button data-g="${i}" data-k="${k}" title="${m[1]} (${m[2]>0?'+':''}${m[2]})">${m[0]} ${m[1]}</button>`).join('')}</div>
+        <div class="hist" aria-label="Conquistas">${p.log.join('')}</div></div>
+      <div class="pts">${p.pts}${pop&&pop.g===i?`<span class="pop${pop.v<0?' neg':''}">${pop.v>0?'+':''}${pop.v}</span>`:''}</div></div>`}).join('');
+  $('#placar').querySelectorAll('.med button').forEach(b=>b.onclick=()=>{
+    const g=+b.dataset.g,[e,,v]=MEDALHAS[+b.dataset.k];placar[g].pts+=v;placar[g].log.push(e);
+    ultimo.push({g,v});LS.set('mc_placar',placar);renderPlacar({g,v})});
+}
+function desfazPonto(){const u=ultimo.pop();if(!u)return;placar[u.g].pts-=u.v;placar[u.g].log.pop();LS.set('mc_placar',placar);renderPlacar()}
+function zerarPlacar(){if(!confirm('Zerar os pontos de todos os grupos?'))return;placar=null;ultimo=[];LS.set('mc_placar',null);syncPlacar();renderPlacar()}
+
+/* ---------- missão do mapa (checklist automático) ---------- */
+const PROBLEMAS=['⚠️','🗑️','💡','🚧','♿','😟','💧'];
+const MISSAO_MAPA=[
+  ['Título e nome do grupo',()=>titulo.value.trim()&&grupo.value.trim()],
+  ['Limite da área',()=>items.some(i=>i.t==='s'&&i.k==='limite')],
+  ['2 ruas ou caminhos',()=>items.filter(i=>i.t==='s'&&['rua','trilha','calcada'].includes(i.k)).length>=2],
+  ['5 símbolos',()=>items.filter(i=>i.t==='m').length>=5],
+  ['Observação em todos os pontos',()=>{const m=items.filter(i=>i.t==='m');return m.length&&m.every(i=>i.n.trim())}],
+  ['❤️ Lugar que gostam',()=>items.some(i=>i.t==='m'&&i.e==='❤️')],
+  ['⚠️ Um problema',()=>items.some(i=>i.t==='m'&&PROBLEMAS.includes(i.e))],
+  ['📐 Distância no mapa',()=>items.some(i=>i.t==='d')],
+  ['👣 Medida em passos',()=>campo.some(c=>+c.passos>0)]
+];
+let jaCompleto=false;
+function checkMissao(){
+  const box=$('#missao');if(!box)return;
+  const r=MISSAO_MAPA.map(([n,f])=>[n,!!f()]),ok=r.filter(x=>x[1]).length,tot=r.length;
+  const nivel=ok===tot?'🏆 Mestres cartógrafos!':ok>=7?'🗺️ Cartógrafos':ok>=4?'🧭 Exploradores':'🎒 Aprendizes';
+  $('#missaoCont').textContent=`${ok} de ${tot}`;$('#missaoNivel').textContent=nivel;
+  $('#missaoChips').innerHTML=r.map(([n,v])=>`<span class="${v?'ok':''}">${n}</span>`).join('');
+  box.classList.toggle('completa',ok===tot);
+  if(ok===tot&&!jaCompleto){jaCompleto=true;beep()} if(ok<tot)jaCompleto=false;
+}
+document.getElementById('tab-mapa').addEventListener('input',checkMissao);
+document.getElementById('tab-mapa').addEventListener('click',()=>setTimeout(checkMissao,0));
+
+/* ---------- início ---------- */
+showDes();contaNomes();renderGrupos(false);syncPlacar();
 addCampo();addCampo();
-refresh();
+refresh();tShow();
+
 </script>
 </body>
 </html>
