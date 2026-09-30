@@ -44,7 +44,12 @@ th{background:var(--soft)}
 label.f{display:block;font-size:.83rem;color:var(--muted);margin-top:8px}
 input[type=text],input[type=number]{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font-size:.9rem}
 .canvasbox{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px}
-canvas#map{width:100%;height:auto;display:block;border-radius:8px;touch-action:none;cursor:crosshair;background:#fdfcf8}
+canvas#map{width:100%;height:auto;display:block;border-radius:8px;touch-action:none;cursor:crosshair;background:#fdfcf8;position:relative;z-index:1}
+.stage{position:relative;border-radius:8px;overflow:hidden}
+#gframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:none;z-index:0}
+.stage.g canvas#map{background:transparent}
+.stage.mover canvas#map{pointer-events:none}
+.stage.mover{outline:3px solid var(--acc2)}
 .row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .legend div{font-size:.88rem;display:flex;align-items:center;gap:6px;margin:3px 0}
 .notes .n{border-top:1px dashed var(--line);padding:6px 0}
@@ -233,7 +238,14 @@ canvas#map{width:100%;height:auto;display:block;border-radius:8px;touch-action:n
           <span class="hint" id="mapStatus">Usa o endereço digitado (ou a sua localização, se estiver vazio).</span>
         </div>
       </div>
-      <canvas id="map" width="1200" height="800"></canvas>
+      <div class="stage" id="stage">
+        <iframe id="gframe" title="Google Maps" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        <canvas id="map" width="1200" height="800"></canvas>
+      </div>
+      <div class="row" id="gbar" style="display:none">
+        <button class="b" id="btnMover" onclick="toggleMover()">🖐️ Mover o mapa</button>
+        <span class="hint" style="margin:0">Mapa do Google (plano B): ajustem a posição <b>antes</b> de desenhar — o desenho não acompanha o mapa. Para guardar a imagem com o mapa, tirem um print (Win+Shift+S).</span>
+      </div>
       <div class="row">
         <label class="f" style="margin:0">Cada quadrado da grade =
           <input type="number" id="esc" value="10" min="1" style="width:70px;display:inline-block"> metros</label>
@@ -306,7 +318,7 @@ const LINES={
 const SIMB=[['🏠','Moradia'],['🏫','Escola'],['🚪','Sala de aula'],['🏀','Pátio / quadra'],['⛲','Praça'],['🎠','Parquinho'],['🏪','Mercado / mercearia'],['🛍️','Loja'],['🍞','Padaria'],['💊','Farmácia'],['🏥','Saúde'],['🏛️','Prédio público'],['⛪','Templo religioso'],['🚌','Ponto de ônibus'],['🌳','Árvore / vegetação'],['⚽','Campo de futebol'],['💧','Água / esgoto a céu aberto'],['🗑️','Lixo / descarte irregular'],['⚠️','Área de risco'],['💡','Iluminação precária'],['🚧','Calçada ruim / obstáculo'],['♿','Falta de acessibilidade'],['❤️','Lugar que gosto'],['😟','Lugar onde me sinto inseguro']];
 const symName=e=>(SIMB.find(s=>s[0]===e)||[e,e])[1];
 
-let items=[],hist=[],tool='reta',lt='rua',sym='🏠',cur=null,bg=null,campo=[];
+let items=[],hist=[],tool='reta',lt='rua',sym='🏠',cur=null,bg=null,campo=[],gInfo=null;
 const cv=document.getElementById('map'),ctx=cv.getContext('2d');
 
 /* ---------- montar UI ---------- */
@@ -360,7 +372,7 @@ function drawStroke(c,s){
   c.beginPath();s.p.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.stroke();c.restore();
 }
 function drawScene(c,W,H){
-  c.fillStyle='#fdfcf8';c.fillRect(0,0,W,H);
+  if(gInfo&&c===ctx)c.clearRect(0,0,W,H);else{c.fillStyle='#fdfcf8';c.fillRect(0,0,W,H)}
   if(bg){const r=Math.min(W/bg.width,H/bg.height),w=bg.width*r,h=bg.height*r;
     c.globalAlpha=+bgOp.value;c.drawImage(bg,(W-w)/2,(H-h)/2,w,h);c.globalAlpha=1}
   if(gridOn.checked){c.strokeStyle='rgba(60,90,75,.13)';c.lineWidth=1;
@@ -475,60 +487,112 @@ passo.addEventListener('input',()=>{renderCampo();renderMed()});
 /* ---------- fundo ---------- */
 bgFile.onchange=()=>{const f=bgFile.files[0];if(!f)return;const r=new FileReader();
   r.onload=()=>{const im=new Image();im.onload=()=>{bg=im;render()};im.src=r.result};r.readAsDataURL(f)};
-function removeBg(){bg=null;bgInfo=null;bgFile.value='';render()}
+function removeBg(){bg=null;bgInfo=null;bgFile.value='';desligaGoogle();render()}
 let bgInfo=null; // {lat,lng,z,tipo,credito} quando o fundo veio de "Trazer para o mapa"
-bgFile.addEventListener('change',()=>{bgInfo=null});
+bgFile.addEventListener('change',()=>{bgInfo=null;desligaGoogle()});
 
 /* ---------- trazer mapa real para o quadro ---------- */
 const TILES={
-  sat:{url:(z,x,y)=>`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`,credito:'Imagem: Esri, Maxar, Earthstar Geographics',max:19},
-  rua:{url:(z,x,y)=>`https://tile.openstreetmap.org/${z}/${x}/${y}.png`,credito:'© colaboradores do OpenStreetMap',max:19}
+  sat:{urls:[(z,x,y)=>`https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`,
+             (z,x,y)=>`https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${y}/${x}`],
+       credito:'Imagem: Esri, Maxar, Earthstar Geographics'},
+  rua:{urls:[(z,x,y)=>`https://tile.openstreetmap.org/${z}/${x}/${y}.png`,
+             (z,x,y)=>`https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${z}/${y}/${x}`],
+       credito:'© colaboradores do OpenStreetMap / Esri'}
 };
-function status(t){mapStatus.textContent=t}
-async function buscarCoord(q){
-  const m=q.match(/^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/);
-  if(m)return{lat:+m[1],lng:+m[2]};
-  const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=pt-BR&q='+encodeURIComponent(q));
-  const j=await r.json();if(!j.length)throw new Error('nao-achou');
-  return{lat:+j[0].lat,lng:+j[0].lon};
+function status(t){mapStatus.innerHTML=t}
+const comTempo=(p,ms)=>Promise.race([p,new Promise((_,no)=>setTimeout(()=>no(new Error('tempo')),ms))]);
+async function getJSON(u){const r=await comTempo(fetch(u),8000);if(!r.ok)throw new Error('http');return r.json()}
+
+// aceita "lat, lng", "lat lng" e links do Google Maps (…/@-15.79,-47.88,17z… ou ?q=-15.79,-47.88)
+function lerCoord(q){
+  const pats=[/@(-?\d+\.\d+),\s*(-?\d+\.\d+)/,/[?&](?:q|query|ll|center)=(-?\d+\.\d+)(?:,|%2C)\s*(-?\d+\.\d+)/i,
+              /!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/,/^\s*(-?\d+(?:[.,]\d+)?)\s*[,;\s]\s*(-?\d+(?:[.,]\d+)?)\s*$/];
+  for(const re of pats){const m=q.match(re);if(m){
+    const a=[m[1],m[2]].map(v=>+String(v).replace(',', '.'));
+    if(Math.abs(a[0])<=90&&Math.abs(a[1])<=180)return{lat:a[0],lng:a[1]}}}
+  // "-15,7939, -47,8828" (vírgula decimal)
+  const m=q.match(/^\s*(-?\d+),(\d+)\s*[,;]\s*(-?\d+),(\d+)\s*$/);
+  if(m)return{lat:+(m[1]+'.'+m[2]),lng:+(m[3]+'.'+m[4])};
+  return null;
 }
-function minhaCoord(){return new Promise((ok,no)=>{if(!navigator.geolocation)return no(new Error('sem-geo'));
-  navigator.geolocation.getCurrentPosition(p=>ok({lat:p.coords.latitude,lng:p.coords.longitude}),()=>no(new Error('sem-geo')),{enableHighAccuracy:true,timeout:10000})})}
-function carregaTile(src){return new Promise(ok=>{const im=new Image();im.crossOrigin='anonymous';im.onload=()=>ok(im);im.onerror=()=>ok(null);im.src=src})}
+async function buscarCoord(q){
+  const c=lerCoord(q);if(c)return c;
+  const tent=[
+    async()=>{const j=await getJSON('https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=json&maxLocations=1&countryCode=BRA&langCode=pt&singleLine='+encodeURIComponent(q));
+      const k=j.candidates&&j.candidates[0];if(!k||k.score<60)throw 0;return{lat:k.location.y,lng:k.location.x}},
+    async()=>{const j=await getJSON('https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=pt-BR&q='+encodeURIComponent(q));
+      if(!j.length)throw 0;return{lat:+j[0].lat,lng:+j[0].lon}},
+    async()=>{const j=await getJSON('https://photon.komoot.io/api/?limit=1&q='+encodeURIComponent(q));
+      const f=j.features&&j.features[0];if(!f)throw 0;return{lat:f.geometry.coordinates[1],lng:f.geometry.coordinates[0]}}
+  ];
+  for(const t of tent){try{return await t()}catch(e){}}
+  return null;
+}
+function minhaCoord(){return new Promise(ok=>{if(!navigator.geolocation)return ok(null);
+  navigator.geolocation.getCurrentPosition(p=>ok({lat:p.coords.latitude,lng:p.coords.longitude}),()=>ok(null),{enableHighAccuracy:true,timeout:10000})})}
+function carregaTile(src){return new Promise(ok=>{const im=new Image();im.crossOrigin='anonymous';
+  const t=setTimeout(()=>{im.src='';ok(null)},10000);
+  im.onload=()=>{clearTimeout(t);ok(im)};im.onerror=()=>{clearTimeout(t);ok(null)};im.src=src})}
 async function montarMapa(lat,lng,z,tipo){
-  const T=TILES[tipo],W=cv.width,H=cv.height,n=2**z;
+  const W=cv.width,H=cv.height,n=2**z;
   const px=(lng+180)/360*256*n,
         py=(1-Math.log(Math.tan(lat*Math.PI/180)+1/Math.cos(lat*Math.PI/180))/Math.PI)/2*256*n;
-  const x0=px-W/2,y0=py-H/2,c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');
-  g.fillStyle='#e8e4da';g.fillRect(0,0,W,H);
-  const jobs=[];let falhas=0;
-  for(let tx=Math.floor(x0/256);tx<=Math.floor((x0+W-1)/256);tx++)
-    for(let ty=Math.floor(y0/256);ty<=Math.floor((y0+H-1)/256);ty++){
-      if(ty<0||ty>=n)continue;const wx=((tx%n)+n)%n;
-      jobs.push(carregaTile(T.url(z,wx,ty)).then(im=>{if(im)g.drawImage(im,tx*256-x0,ty*256-y0);else falhas++}))}
-  await Promise.all(jobs);
-  if(falhas===jobs.length)throw new Error('sem-tiles');
-  // escala real: metros por pixel nesse zoom e latitude
-  const mpp=156543.03392*Math.cos(lat*Math.PI/180)/n;
-  return{img:c,mpp,falhas};
+  const x0=px-W/2,y0=py-H/2;
+  for(const url of TILES[tipo].urls){
+    const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d');
+    g.fillStyle='#e8e4da';g.fillRect(0,0,W,H);
+    const jobs=[];let falhas=0;
+    for(let tx=Math.floor(x0/256);tx<=Math.floor((x0+W-1)/256);tx++)
+      for(let ty=Math.floor(y0/256);ty<=Math.floor((y0+H-1)/256);ty++){
+        if(ty<0||ty>=n)continue;const wx=((tx%n)+n)%n;
+        jobs.push(carregaTile(url(z,wx,ty)).then(im=>{if(im)g.drawImage(im,tx*256-x0,ty*256-y0);else falhas++}))}
+    await Promise.all(jobs);
+    if(falhas<jobs.length/2){try{c.toDataURL()}catch(e){continue} // imagem precisa poder ser exportada
+      return{img:c,mpp:mppDe(lat,z),falhas}}
+  }
+  throw new Error('sem-tiles');
 }
+const mppDe=(lat,z)=>156543.03392*Math.cos(lat*Math.PI/180)/2**z;
+
+/* --- plano B: Google Maps incorporado atrás do quadro --- */
+function ligaGoogle(info){
+  gInfo=info;bg=null;bgInfo=null;
+  const alvo=info.lat!=null?info.lat+','+info.lng:info.q;
+  gframe.src='https://maps.google.com/maps?hl=pt-BR&output=embed&t='+(info.tipo==='sat'?'k':'m')+'&z='+info.z+'&q='+encodeURIComponent(alvo);
+  gframe.style.display='block';stage.classList.add('g');gbar.style.display='flex';
+  ajustaEscalaGoogle();render();
+}
+function desligaGoogle(){if(!gInfo)return;gInfo=null;gframe.src='about:blank';gframe.style.display='none';
+  stage.classList.remove('g','mover');gbar.style.display='none';btnMover.textContent='🖐️ Mover o mapa'}
+function ajustaEscalaGoogle(){if(!gInfo)return;
+  const cssW=cv.getBoundingClientRect().width||cv.width;
+  esc.value=Math.round(50*(cssW/cv.width)*mppDe(gInfo.lat??-15,gInfo.z)*10)/10;renderMed()}
+function toggleMover(){const m=stage.classList.toggle('mover');
+  btnMover.textContent=m?'✏️ Voltar a desenhar':'🖐️ Mover o mapa';
+  if(m)status('🖐️ Arraste o mapa para posicionar. <b>Não use o zoom</b>, senão a escala muda. Depois clique em “Voltar a desenhar”.')}
+window.addEventListener('resize',()=>{if(gInfo)ajustaEscalaGoogle()});
+
 async function trazerMapa(){
   const z=+mapZoom.value,tipo=mapTipo.value,q=endereco.value.trim();
-  try{
-    status(q?'🔎 Procurando o endereço…':'📍 Pegando a sua localização…');
-    const {lat,lng}=q?await buscarCoord(q):await minhaCoord();
+  status(q?'🔎 Procurando o endereço…':'📍 Pegando a sua localização… (permita o acesso se o navegador perguntar)');
+  const co=q?await buscarCoord(q):await minhaCoord();
+  if(!co&&!q){status('❌ Não foi possível pegar a sua localização. Digite o endereço da escola no campo acima.');return}
+  if(co){
     status('🛰️ Baixando a imagem da área…');
-    const {img,mpp,falhas}=await montarMapa(lat,lng,z,tipo);
-    bg=img;bgInfo={lat,lng,z,tipo,credito:TILES[tipo].credito};bgFile.value='';
-    bgOp.value=tipo==='sat'?0.9:0.75;
-    esc.value=Math.round(50*mpp*10)/10;
-    render();renderMed();renderSide();
-    status('✅ Pronto! Escala ajustada automaticamente: cada quadrado ≈ '+String(esc.value).replace('.',',')+' m.'+(falhas?' (Algumas partes da imagem não carregaram.)':''));
-  }catch(e){
-    status({'nao-achou':'❌ Endereço não encontrado. Tente com rua, número, cidade e estado — ou cole as coordenadas do Google Maps (ex.: -15.7939, -47.8828).',
-      'sem-geo':'❌ Não foi possível pegar a localização. Permita o acesso no navegador ou digite o endereço.',
-      'sem-tiles':'❌ Não foi possível baixar a imagem. Verifique a internet da escola.'}[e.message]||'❌ Não deu certo. Verifique a internet e tente de novo.');
+    try{
+      const {img,mpp,falhas}=await montarMapa(co.lat,co.lng,z,tipo);
+      desligaGoogle();
+      bg=img;bgInfo={lat:co.lat,lng:co.lng,z,tipo,credito:TILES[tipo].credito};bgFile.value='';
+      bgOp.value=tipo==='sat'?0.9:0.75;esc.value=Math.round(50*mpp*10)/10;
+      render();renderSide();
+      status('✅ Pronto! Escala ajustada automaticamente: cada quadrado ≈ '+String(esc.value).replace('.',',')+' m.'+(falhas?' (Algumas partes da imagem não carregaram.)':''));
+      return;
+    }catch(e){}
   }
+  // plano B
+  ligaGoogle({q,lat:co?co.lat:null,lng:co?co.lng:null,z,tipo});
+  status('✅ Mapa do Google colocado no quadro (plano B).'+(co?'':' A escala é aproximada.')+' Obs.: o PNG baixado terá só o desenho, sem a foto do mapa.');
 }
 
 /* ---------- exportar ---------- */
@@ -568,14 +632,15 @@ function exportPNG(){
       x.font='14px system-ui';x.fillStyle='#5d6a62';if(m.n)wrap(x,m.n,side-50).forEach(t=>{x.fillText(t,lx+16,ly);ly+=20})})}
   x.font='12px system-ui';x.fillStyle='#8a948e';x.textBaseline='bottom';
   x.fillText('Fonte: levantamento de campo dos alunos (mapeamento participativo).',pad,c.height-10);
-  const a=document.createElement('a');a.download=(grupo.value||'mapa').replace(/[^\wÀ-ú-]+/g,'_')+'.png';a.href=c.toDataURL('image/png');a.click();
+  const a=document.createElement('a');a.download=(grupo.value||'mapa').replace(/[^\wÀ-ú-]+/g,'_')+'.png';try{a.href=c.toDataURL('image/png')}catch(e){alert('Não foi possível gerar a imagem com esse fundo. Clique em "Remover fundo" e tente de novo, ou tire um print da tela.');return}a.click();
 }
-function saveJSON(){const data={titulo:titulo.value,grupo:grupo.value,esc:esc.value,passo:passo.value,campo,items,mapa:bgInfo,op:bgOp.value};
+function saveJSON(){const data={titulo:titulo.value,grupo:grupo.value,esc:esc.value,passo:passo.value,campo,items,mapa:bgInfo,google:gInfo,op:bgOp.value};
   const a=document.createElement('a');a.download=(grupo.value||'projeto').replace(/[^\wÀ-ú-]+/g,'_')+'.json';
   a.href=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'}));a.click()}
 openFile.onchange=()=>{const f=openFile.files[0];if(!f)return;f.text().then(t=>{try{const d=JSON.parse(t);save();
   items=d.items||[];titulo.value=d.titulo||'';grupo.value=d.grupo||'';esc.value=d.esc||10;
   passo.value=d.passo||0.7;campo=d.campo||[];renderCampo();refresh();
+  desligaGoogle();if(d.google)ligaGoogle(d.google);
   if(d.mapa){const M=d.mapa;status('🛰️ Recarregando a imagem da área…');
     montarMapa(M.lat,M.lng,M.z,M.tipo).then(({img})=>{bg=img;bgInfo=M;bgOp.value=d.op||0.85;mapZoom.value=M.z;mapTipo.value=M.tipo;render();status('✅ Área recarregada.')})
       .catch(()=>status('❌ Não foi possível recarregar a imagem (sem internet?). O desenho foi aberto normalmente.'))}
