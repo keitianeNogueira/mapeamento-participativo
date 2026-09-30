@@ -234,8 +234,9 @@ canvas#map{width:100%;height:auto;display:block;border-radius:8px;touch-action:n
             <option value="sat">Satélite</option>
             <option value="rua">Mapa de ruas</option>
           </select>
-          <button class="b" onclick="trazerMapa()">📥 Trazer para o mapa</button>
-          <span class="hint" id="mapStatus">Usa o endereço digitado (ou a sua localização, se estiver vazio).</span>
+          <button class="b" onclick="trazerMapa()">📥 Trazer para o mapa (Google)</button>
+          <button class="b alt" onclick="trazerFoto()" title="Imagem de satélite gratuita (Esri) que sai junto no PNG baixado">🛰️ Foto que sai no PNG</button>
+          <span class="hint" id="mapStatus">Digite o nome da escola ou o endereço (ou deixe vazio para usar a sua localização).</span>
         </div>
       </div>
       <div class="stage" id="stage">
@@ -244,7 +245,7 @@ canvas#map{width:100%;height:auto;display:block;border-radius:8px;touch-action:n
       </div>
       <div class="row" id="gbar" style="display:none">
         <button class="b" id="btnMover" onclick="toggleMover()">🖐️ Mover o mapa</button>
-        <span class="hint" style="margin:0">Mapa do Google (plano B): ajustem a posição <b>antes</b> de desenhar — o desenho não acompanha o mapa. Para guardar a imagem com o mapa, tirem um print (Win+Shift+S).</span>
+        <span class="hint" style="margin:0">Ajustem a posição do mapa <b>antes</b> de desenhar — o desenho não acompanha o mapa. O PNG baixado sai só com o desenho; para guardar com o mapa, tirem um print (Win+Shift+S) ou usem <b>🛰️ Foto que sai no PNG</b>.</span>
       </div>
       <div class="row">
         <label class="f" style="margin:0">Cada quadrado da grade =
@@ -261,7 +262,7 @@ canvas#map{width:100%;height:auto;display:block;border-radius:8px;touch-action:n
         <button class="b alt" onclick="removeBg()">Remover fundo</button>
         <button class="b warn" onclick="clearAll()">🗑️ Limpar tudo</button>
       </div>
-      <p class="hint">Dica: digite o endereço lá em cima e clique em <b>📥 Trazer para o mapa</b> — a imagem da área aparece aqui e a escala é ajustada sozinha. Também dá para usar um print próprio em <b>📷 Fundo</b>. Depois de trazer o mapa, não mudem o valor da grade, senão as medições ficam erradas.</p>
+      <p class="hint">Dica: digite o endereço lá em cima e clique em <b>📥 Trazer para o mapa (Google)</b> — o mapa aparece aqui e vocês desenham por cima. Também dá para usar um print próprio em <b>📷 Fundo</b>. Depois de trazer o mapa, não mudem o valor da grade, senão as medições ficam erradas.</p>
     </div>
 
     <!-- legenda e notas -->
@@ -575,6 +576,15 @@ window.addEventListener('resize',()=>{if(gInfo)ajustaEscalaGoogle()});
 
 async function trazerMapa(){
   const z=+mapZoom.value,tipo=mapTipo.value,q=endereco.value.trim();
+  let co=q?lerCoord(q):null;
+  if(!q){status('📍 Pegando a sua localização… (permita o acesso se o navegador perguntar)');co=await minhaCoord();
+    if(!co){status('❌ Não foi possível pegar a sua localização. Digite o nome da escola ou o endereço no campo acima.');return}}
+  ligaGoogle({q,lat:co?co.lat:null,lng:co?co.lng:null,z,tipo});
+  status('✅ Mapa do Google no quadro! Se não estiver no lugar certo, clique em <b>🖐️ Mover o mapa</b> (logo abaixo do quadro) e arraste. Depois clique em “Voltar a desenhar”.');
+  if(!co&&q){const c=await buscarCoord(q);if(c&&gInfo&&gInfo.q===q){gInfo.lat=c.lat;gInfo.lng=c.lng;ajustaEscalaGoogle()}}
+}
+async function trazerFoto(){
+  const z=+mapZoom.value,tipo=mapTipo.value,q=endereco.value.trim();
   status(q?'🔎 Procurando o endereço…':'📍 Pegando a sua localização… (permita o acesso se o navegador perguntar)');
   const co=q?await buscarCoord(q):await minhaCoord();
   if(!co&&!q){status('❌ Não foi possível pegar a sua localização. Digite o endereço da escola no campo acima.');return}
@@ -590,9 +600,7 @@ async function trazerMapa(){
       return;
     }catch(e){}
   }
-  // plano B
-  ligaGoogle({q,lat:co?co.lat:null,lng:co?co.lng:null,z,tipo});
-  status('✅ Mapa do Google colocado no quadro (plano B).'+(co?'':' A escala é aproximada.')+' Obs.: o PNG baixado terá só o desenho, sem a foto do mapa.');
+  status('❌ A foto de satélite não carregou'+(co?'':' (endereço não encontrado)')+'. Use o botão <b>📥 Trazer para o mapa (Google)</b> ou cole as coordenadas do Google Maps no campo.');
 }
 
 /* ---------- exportar ---------- */
