@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mapeamento Participativo</title>
+<style>
+:root{--bg:#f5f2ea;--card:#fff;--ink:#22302a;--muted:#5d6a62;--acc:#2f7d5b;--acc-d:#235f45;--acc2:#e0a526;--line:#dcd5c5;--soft:#eaf3ee}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
+header{background:var(--acc);color:#fff;padding:12px 20px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;justify-content:space-between}
+header h1{margin:0;font-size:1.25rem}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+nav button{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.35);padding:8px 14px;border-radius:8px;font-size:.95rem;cursor:pointer}
+nav button.on{background:#fff;color:var(--acc-d);font-weight:600}
+main{padding:18px;max-width:1500px;margin:0 auto}
+.tab{display:none}.tab.on{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin-bottom:14px}
+h2{margin:.2em 0 .5em;font-size:1.2rem;color:var(--acc-d)}
+h3{margin:.8em 0 .3em;font-size:1rem}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{border:1px solid var(--line);padding:7px 9px;text-align:left;vertical-align:top}
+th{background:var(--soft)}
+.pill{display:inline-block;background:var(--soft);border-radius:99px;padding:2px 10px;margin:2px;font-size:.88rem}
+.timer{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.timer .t{font-size:2.6rem;font-variant-numeric:tabular-nums;font-weight:700;min-width:140px}
+button.b{background:var(--acc);color:#fff;border:0;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:.9rem}
+button.b.alt{background:#fff;color:var(--acc-d);border:1px solid var(--acc)}
+button.b.warn{background:#b94a3a}
+/* mapa */
+.mapwrap{display:grid;grid-template-columns:230px 1fr 290px;gap:12px;align-items:start}
+@media(max-width:1100px){.mapwrap{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+.panel h3{margin:.2em 0 .5em;font-size:.95rem;color:var(--acc-d)}
+.tools{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.tools button,.ltype button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 6px;cursor:pointer;font-size:.85rem;text-align:left}
+.tools button.on,.ltype button.on,.syms button.on{border-color:var(--acc);background:var(--soft);box-shadow:inset 0 0 0 1px var(--acc)}
+.ltype{display:flex;flex-direction:column;gap:5px}
+.ltype span.sw{display:inline-block;width:26px;height:0;vertical-align:middle;margin-right:6px;border-top-width:5px}
+.syms{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.syms button{font-size:1.35rem;padding:4px 0;border:1px solid var(--line);background:#fff;border-radius:8px;cursor:pointer}
+.symname{font-size:.82rem;color:var(--muted);min-height:1.2em;margin-top:4px}
+label.f{display:block;font-size:.83rem;color:var(--muted);margin-top:8px}
+input[type=text],input[type=number]{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font-size:.9rem}
+.canvasbox{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px}
+canvas#map{width:100%;height:auto;display:block;border-radius:8px;touch-action:none;cursor:crosshair;background:#fdfcf8}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.legend div{font-size:.88rem;display:flex;align-items:center;gap:6px;margin:3px 0}
+.notes .n{border-top:1px dashed var(--line);padding:6px 0}
+.notes .n b{font-size:.88rem}
+.notes input{margin-top:3px}
+.hint{font-size:.82rem;color:var(--muted);margin:.4em 0}
+@media print{header nav,.noprint{display:none!important}#tab-mapa{display:none!important}#tab-dinamica{display:block!important}body{background:#fff}.card{break-inside:avoid;border-color:#bbb}}
+</style>
+</head>
+<body>
+<header>
+  <h1>🗺️ Mapeamento Participativo — Aula de Geografia</h1>
+  <nav>
+    <button class="on" data-tab="dinamica">📋 Dinâmica (professor)</button>
+    <button data-tab="mapa">✏️ Mapa do grupo</button>
+  </nav>
+</header>
+
+<main>
+<!-- ============ DINÂMICA ============ -->
+<section id="tab-dinamica" class="tab on">
+  <div class="card noprint">
+    <h2>⏱️ Cronômetro da etapa</h2>
+    <div class="timer">
+      <div class="t" id="tdisp">10:00</div>
+      <button class="b alt" onclick="setT(5)">5 min</button>
+      <button class="b alt" onclick="setT(10)">10 min</button>
+      <button class="b alt" onclick="setT(15)">15 min</button>
+      <button class="b alt" onclick="setT(25)">25 min</button>
+      <button class="b" id="tgo" onclick="togT()">▶ Iniciar</button>
+      <button class="b warn" onclick="setT(tBase/60)">↺</button>
+      <button class="b alt" onclick="window.print()">🖨️ Imprimir plano</button>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>🎯 Proposta</h2>
+      <p><b>Tema:</b> “O lugar onde estudamos” — mapear coletivamente uma pequena área (entorno da escola, um quarteirão, o pátio ou a praça mais próxima), registrando o que existe, os problemas e os lugares com significado para os alunos.</p>
+      <h3>Objetivos</h3>
+      <ul>
+        <li>Aplicar elementos do mapa: <b>título, legenda, orientação, escala e fonte</b>.</li>
+        <li>Perceber o espaço vivido: o que é o <b>lugar</b> para cada um.</li>
+        <li>Identificar problemas socioambientais e propor soluções.</li>
+        <li>Entender que mapas são construídos por alguém, com escolhas e pontos de vista (cartografia social).</li>
+      </ul>
+      <h3>Materiais</h3>
+      <span class="pill">Esta página (computador, tablet ou projetor)</span>
+      <span class="pill">Prancheta + folha quadriculada</span>
+      <span class="pill">Celular para fotos (opcional)</span>
+      <span class="pill">Bússola ou app de bússola</span>
+      <span class="pill">Trena ou contagem de passos</span>
+      <span class="pill">Imagem de satélite impressa (opcional)</span>
+    </div>
+
+    <div class="card">
+      <h2>👥 Organização da turma (30 alunos)</h2>
+      <p><b>6 grupos de 5 alunos.</b> Cada grupo fica com um <b>setor</b> da área <i>ou</i> com um <b>olhar temático</b>:</p>
+      <table>
+        <tr><th>Grupo</th><th>Setor (opção A)</th><th>Olhar temático (opção B)</th></tr>
+        <tr><td>1</td><td>Frente da escola</td><td>Infraestrutura (ruas, calçadas, iluminação)</td></tr>
+        <tr><td>2</td><td>Lateral direita</td><td>Meio ambiente (árvores, lixo, água)</td></tr>
+        <tr><td>3</td><td>Lateral esquerda</td><td>Mobilidade e acessibilidade</td></tr>
+        <tr><td>4</td><td>Fundos</td><td>Serviços e comércio</td></tr>
+        <tr><td>5</td><td>Pátio / área interna</td><td>Riscos e insegurança</td></tr>
+        <tr><td>6</td><td>Praça ou esquina próxima</td><td>Lugares afetivos e de lazer</td></tr>
+      </table>
+      <h3>Funções dentro do grupo</h3>
+      <table>
+        <tr><td>🧭 <b>Orientador(a)</b></td><td>Usa a bússola, define o Norte e a direção das ruas.</td></tr>
+        <tr><td>📏 <b>Medidor(a)</b></td><td>Conta passos / mede distâncias para a escala.</td></tr>
+        <tr><td>✏️ <b>Cartógrafo(a)</b></td><td>Desenha o croqui em campo e depois no mapa digital.</td></tr>
+        <tr><td>📷 <b>Registrador(a)</b></td><td>Fotografa e anota observações de cada ponto.</td></tr>
+        <tr><td>🎤 <b>Entrevistador(a) / relator(a)</b></td><td>Conversa com funcionários ou moradores e apresenta o mapa.</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🪜 Etapas da dinâmica (2 aulas de ~50 min)</h2>
+    <table>
+      <tr><th>Etapa</th><th>Tempo</th><th>O que acontece</th></tr>
+      <tr><td><b>1. Mapa mental</b> (aula 1)</td><td>10 min</td><td>Individualmente, cada aluno desenha de memória o caminho casa → escola, marcando 3 referências. Discussão rápida: por que os desenhos são tão diferentes?</td></tr>
+      <tr><td><b>2. Planejamento</b></td><td>5 min</td><td>Formação dos grupos, divisão de funções, entrega das pranchetas. Combinar regras de segurança do campo.</td></tr>
+      <tr><td><b>3. Trabalho de campo</b></td><td>25–30 min</td><td>Grupos percorrem seu setor: definem o Norte, medem em passos (1 passo ≈ 0,7 m), desenham o croqui e registram pontos com símbolos e observações.</td></tr>
+      <tr><td><b>4. Mapa digital</b> (aula 2)</td><td>20 min</td><td>Na aba <b>“Mapa do grupo”</b>, cada grupo passa o croqui a limpo: ruas, rios, limites, símbolos, nota em cada ponto, escala e título. Exporta a imagem PNG.</td></tr>
+      <tr><td><b>5. Socialização</b></td><td>20 min</td><td>Os 6 mapas são projetados lado a lado (ou impressos e colados formando o “mapa da turma”). Cada relator apresenta em 2–3 min.</td></tr>
+      <tr><td><b>6. Reflexão e proposta</b></td><td>10 min</td><td>Turma escolhe o problema mais citado e escreve uma proposta de solução (carta à direção, à prefeitura ou associação de moradores).</td></tr>
+    </table>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>❓ Perguntas para a socialização</h2>
+      <ul>
+        <li>O que apareceu em quase todos os mapas? E o que só um grupo viu?</li>
+        <li>Onde vocês se sentem bem? Onde se sentem inseguros? Por quê?</li>
+        <li>Os mapas de dois grupos que viram o mesmo lugar ficaram iguais? O que isso diz sobre quem faz mapas?</li>
+        <li>O que um mapa oficial (Google Maps, IBGE) mostra e o que ele <b>não</b> mostra do nosso lugar?</li>
+        <li>Se pudessem mudar uma coisa nesse espaço, o que seria?</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>✅ Avaliação (rubrica simples)</h2>
+      <table>
+        <tr><th>Critério</th><th>Pontos</th></tr>
+        <tr><td>Elementos do mapa (título, legenda, Norte, escala)</td><td>0–3</td></tr>
+        <tr><td>Registro de observações nos pontos</td><td>0–2</td></tr>
+        <tr><td>Participação e cumprimento da função</td><td>0–2</td></tr>
+        <tr><td>Apresentação oral</td><td>0–1,5</td></tr>
+        <tr><td>Proposta de intervenção</td><td>0–1,5</td></tr>
+        <tr><th>Total</th><th>10</th></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MAPA ============ -->
+<section id="tab-mapa" class="tab">
+  <div class="mapwrap">
+    <!-- ferramentas -->
+    <div class="panel">
+      <h3>Grupo</h3>
+      <input type="text" id="grupo" placeholder="Ex.: Grupo 2 – Meio ambiente">
+      <label class="f">Título do mapa</label>
+      <input type="text" id="titulo" value="Mapa do entorno da escola">
+
+      <h3 style="margin-top:12px">Ferramenta</h3>
+      <div class="tools" id="tools">
+        <button data-t="reta" class="on">📏 Linha reta</button>
+        <button data-t="traco">✏️ Traço livre</button>
+        <button data-t="simbolo">📍 Símbolo</button>
+        <button data-t="texto">🔤 Texto</button>
+        <button data-t="apagar">🧽 Apagar item</button>
+        <button onclick="undo()" data-noselect>↩️ Desfazer</button>
+      </div>
+
+      <h3 style="margin-top:12px">Tipo de linha</h3>
+      <div class="ltype" id="ltype"></div>
+
+      <h3 style="margin-top:12px">Símbolos</h3>
+      <div class="syms" id="syms"></div>
+      <div class="symname" id="symname"></div>
+
+      <label class="f">Texto a inserir (clique no mapa)</label>
+      <input type="text" id="txt" placeholder="Ex.: Rua das Flores">
+    </div>
+
+    <!-- tela -->
+    <div class="canvasbox">
+      <canvas id="map" width="1200" height="800"></canvas>
+      <div class="row">
+        <label class="f" style="margin:0">Cada quadrado da grade =
+          <input type="number" id="esc" value="10" min="1" style="width:70px;display:inline-block"> metros</label>
+        <label class="f" style="margin:0"><input type="checkbox" id="gridOn" checked> Grade</label>
+        <label class="f" style="margin:0">📷 Fundo:
+          <input type="file" id="bgFile" accept="image/*" style="font-size:.8rem;max-width:190px"></label>
+        <label class="f" style="margin:0">Opacidade <input type="range" id="bgOp" min="0.1" max="1" step="0.05" value="0.45"></label>
+      </div>
+      <div class="row">
+        <button class="b" onclick="exportPNG()">⬇️ Baixar mapa (PNG)</button>
+        <button class="b alt" onclick="saveJSON()">💾 Salvar projeto</button>
+        <label class="b alt" style="display:inline-block">📂 Abrir projeto<input type="file" id="openFile" accept=".json" hidden></label>
+        <button class="b alt" onclick="removeBg()">Remover fundo</button>
+        <button class="b warn" onclick="clearAll()">🗑️ Limpar tudo</button>
+      </div>
+      <p class="hint">Dica: coloque como fundo um print da imagem de satélite da área (Google Maps / Google Earth) e desenhe por cima. A escala da grade ajuda a transformar passos em metros.</p>
+    </div>
+
+    <!-- legenda e notas -->
+    <div class="panel">
+      <h3>Legenda (automática)</h3>
+      <div class="legend" id="legend"><span class="hint">Aparece conforme vocês desenham.</span></div>
+      <h3 style="margin-top:14px">Observações dos pontos</h3>
+      <div class="notes" id="notes"><span class="hint">Cada símbolo colocado ganha um número. Escrevam aqui o que observaram.</span></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<script>
+/* ---------- abas ---------- */
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.id==='tab-'+b.dataset.tab));
+  if(b.dataset.tab==='mapa') render();
+});
+
+/* ---------- cronômetro ---------- */
+let tBase=600,tLeft=600,tInt=null;
+const fmt=s=>String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+function setT(m){clearInterval(tInt);tInt=null;tBase=tLeft=Math.round(m*60);tdisp.textContent=fmt(tLeft);tgo.textContent='▶ Iniciar';tdisp.style.color=''}
+function togT(){
+  if(tInt){clearInterval(tInt);tInt=null;tgo.textContent='▶ Continuar';return}
+  tgo.textContent='⏸ Pausar';
+  tInt=setInterval(()=>{tLeft--;tdisp.textContent=fmt(Math.max(tLeft,0));
+    if(tLeft<=0){clearInterval(tInt);tInt=null;tgo.textContent='▶ Iniciar';tdisp.style.color='#b94a3a';beep()}},1000);
+}
+function beep(){try{const a=new(window.AudioContext||window.webkitAudioContext)();[0,.35,.7].forEach(d=>{const o=a.createOscillator(),g=a.createGain();o.frequency.value=880;o.connect(g);g.connect(a.destination);g.gain.value=.2;o.start(a.currentTime+d);o.stop(a.currentTime+d+.22)})}catch(e){}}
+
+/* ---------- dados do mapa ---------- */
+const LINES={
+  rua:{nome:'Rua / avenida',cor:'#7a7a7a',w:12,dash:[]},
+  calcada:{nome:'Calçada / muro',cor:'#b9a98a',w:4,dash:[]},
+  rio:{nome:'Rio / córrego',cor:'#2b7bd6',w:6,dash:[]},
+  trilha:{nome:'Caminho / trilha',cor:'#8a5a2b',w:4,dash:[12,8]},
+  verde:{nome:'Área verde',cor:'#2f9a4a',w:6,dash:[]},
+  limite:{nome:'Limite da área',cor:'#d6332b',w:3,dash:[16,8]},
+  outro:{nome:'Outro traço',cor:'#222',w:3,dash:[]}
+};
+const SIMB=[['🏠','Moradia'],['🏫','Escola'],['🏪','Comércio'],['🏥','Saúde'],['⛪','Templo religioso'],['🚌','Ponto de ônibus'],['🌳','Árvore / vegetação'],['⚽','Lazer / praça'],['💧','Água / esgoto a céu aberto'],['🗑️','Lixo / descarte irregular'],['⚠️','Área de risco'],['💡','Iluminação precária'],['🚧','Calçada ruim / obstáculo'],['♿','Falta de acessibilidade'],['❤️','Lugar que gosto'],['😟','Lugar onde me sinto inseguro']];
+const symName=e=>(SIMB.find(s=>s[0]===e)||[e,e])[1];
+
+let items=[],hist=[],tool='reta',lt='rua',sym='🏠',cur=null,bg=null;
+const cv=document.getElementById('map'),ctx=cv.getContext('2d');
+
+/* ---------- montar UI ---------- */
+const ltBox=document.getElementById('ltype');
+Object.entries(LINES).forEach(([k,v])=>{
+  const b=document.createElement('button');b.dataset.k=k;
+  b.innerHTML=`<span class="sw" style="border-top:${Math.min(v.w,8)}px ${v.dash.length?'dashed':'solid'} ${v.cor}"></span>${v.nome}`;
+  if(k===lt)b.classList.add('on');
+  b.onclick=()=>{lt=k;[...ltBox.children].forEach(x=>x.classList.toggle('on',x===b));if(tool!=='traco')pickTool('reta')};
+  ltBox.appendChild(b);
+});
+const syBox=document.getElementById('syms');
+SIMB.forEach(([e,n])=>{
+  const b=document.createElement('button');b.textContent=e;b.title=n;
+  if(e===sym)b.classList.add('on');
+  b.onclick=()=>{sym=e;[...syBox.children].forEach(x=>x.classList.toggle('on',x===b));symname.textContent=n;pickTool('simbolo')};
+  syBox.appendChild(b);
+});
+symname.textContent=symName(sym);
+function pickTool(t){tool=t;document.querySelectorAll('#tools button[data-t]').forEach(x=>x.classList.toggle('on',x.dataset.t===t))}
+document.querySelectorAll('#tools button[data-t]').forEach(b=>b.onclick=()=>pickTool(b.dataset.t));
+['esc','gridOn','bgOp','titulo','grupo'].forEach(id=>document.getElementById(id).addEventListener('input',render));
+
+/* ---------- desenho ---------- */
+function save(){hist.push(JSON.stringify(items));if(hist.length>80)hist.shift()}
+function undo(){if(!hist.length)return;items=JSON.parse(hist.pop());refresh()}
+function clearAll(){if(!items.length)return;if(!confirm('Apagar todo o desenho?'))return;save();items=[];refresh()}
+function refresh(){render();renderSide()}
+
+function drawStroke(c,s){
+  const L=LINES[s.k]||LINES.outro;
+  c.save();c.strokeStyle=L.cor;c.lineWidth=L.w;c.lineCap='round';c.lineJoin='round';c.setLineDash(L.dash);
+  c.beginPath();s.p.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.stroke();c.restore();
+}
+function drawScene(c,W,H){
+  c.fillStyle='#fdfcf8';c.fillRect(0,0,W,H);
+  if(bg){const r=Math.min(W/bg.width,H/bg.height),w=bg.width*r,h=bg.height*r;
+    c.globalAlpha=+bgOp.value;c.drawImage(bg,(W-w)/2,(H-h)/2,w,h);c.globalAlpha=1}
+  if(gridOn.checked){c.strokeStyle='rgba(60,90,75,.13)';c.lineWidth=1;
+    for(let x=0;x<=W;x+=50){c.beginPath();c.moveTo(x+.5,0);c.lineTo(x+.5,H);c.stroke()}
+    for(let y=0;y<=H;y+=50){c.beginPath();c.moveTo(0,y+.5);c.lineTo(W,y+.5);c.stroke()}}
+  items.filter(i=>i.t==='s').forEach(s=>drawStroke(c,s));
+  let n=0;
+  items.forEach(i=>{
+    if(i.t==='m'){n++;
+      c.font='34px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';c.textAlign='center';c.textBaseline='middle';
+      c.fillText(i.e,i.x,i.y);
+      c.fillStyle='#22302a';c.beginPath();c.arc(i.x+18,i.y-18,10,0,7);c.fill();
+      c.fillStyle='#fff';c.font='bold 12px system-ui,sans-serif';c.fillText(n,i.x+18,i.y-17.5);
+    }
+    if(i.t==='x'){c.font='bold 22px system-ui,sans-serif';c.textAlign='center';c.textBaseline='middle';
+      c.lineWidth=5;c.strokeStyle='#fff';c.strokeText(i.s,i.x,i.y);c.fillStyle='#22302a';c.fillText(i.s,i.x,i.y)}
+  });
+  // Norte
+  const nx=W-60,ny=70;c.save();c.fillStyle='#22302a';c.strokeStyle='#22302a';c.lineWidth=2;
+  c.beginPath();c.moveTo(nx,ny-38);c.lineTo(nx+14,ny+10);c.lineTo(nx,ny);c.closePath();c.fill();
+  c.beginPath();c.moveTo(nx,ny-38);c.lineTo(nx-14,ny+10);c.lineTo(nx,ny);c.closePath();c.stroke();
+  c.fillStyle='rgba(253,252,248,.85)';c.fillRect(nx-12,ny+12,24,24);c.fillStyle='#22302a';
+  c.font='bold 20px system-ui';c.textAlign='center';c.textBaseline='middle';c.fillText('N',nx,ny+25);c.restore();
+  // escala
+  const m=+esc.value||10,sx=30,sy=H-40;c.save();
+  c.fillStyle='rgba(253,252,248,.9)';c.fillRect(sx-12,sy-30,150+60,52);
+  for(let k=0;k<3;k++){c.fillStyle=k%2?'#fff':'#22302a';c.fillRect(sx+k*50,sy,50,10)}
+  c.strokeStyle='#22302a';c.strokeRect(sx,sy,150,10);
+  c.fillStyle='#22302a';c.font='13px system-ui';c.textAlign='center';c.textBaseline='bottom';
+  [0,1,2,3].forEach(k=>c.fillText(k*m+(k===3?' m':''),sx+k*50,sy-3));c.restore();
+}
+function render(){drawScene(ctx,cv.width,cv.height);if(cur)drawStroke(ctx,cur)}
+
+function pos(e){const r=cv.getBoundingClientRect();return[(e.clientX-r.left)*cv.width/r.width,(e.clientY-r.top)*cv.height/r.height]}
+function segDist(p,a,b){const dx=b[0]-a[0],dy=b[1]-a[1],l=dx*dx+dy*dy;let t=l?((p[0]-a[0])*dx+(p[1]-a[1])*dy)/l:0;t=Math.max(0,Math.min(1,t));return Math.hypot(p[0]-a[0]-t*dx,p[1]-a[1]-t*dy)}
+cv.addEventListener('pointerdown',e=>{
+  const p=pos(e);cv.setPointerCapture(e.pointerId);
+  if(tool==='traco')cur={t:'s',k:lt,p:[p]};
+  else if(tool==='reta')cur={t:'s',k:lt,p:[p,p]};
+  else if(tool==='simbolo'){save();items.push({t:'m',e:sym,x:p[0],y:p[1],n:''});refresh()}
+  else if(tool==='texto'){const s=txt.value.trim();if(!s){txt.focus();txt.placeholder='Digite o texto aqui primeiro!';return}save();items.push({t:'x',s,x:p[0],y:p[1]});refresh()}
+  else if(tool==='apagar'){
+    for(let i=items.length-1;i>=0;i--){const it=items[i];let hit=false;
+      if(it.t!=='s')hit=Math.hypot(it.x-p[0],it.y-p[1])<30;
+      else hit=it.p.length===1?Math.hypot(it.p[0][0]-p[0],it.p[0][1]-p[1])<15:it.p.some((q,j)=>j&&segDist(p,it.p[j-1],q)<15);
+      if(hit){save();items.splice(i,1);refresh();break}}
+  }
+});
+cv.addEventListener('pointermove',e=>{if(!cur)return;const p=pos(e);if(tool==='traco')cur.p.push(p);else cur.p[1]=p;render()});
+cv.addEventListener('pointerup',()=>{if(!cur)return;
+  const [a,b]=[cur.p[0],cur.p[cur.p.length-1]];
+  if(cur.p.length>2||Math.hypot(a[0]-b[0],a[1]-b[1])>4){save();items.push(cur)}
+  cur=null;refresh()});
+
+/* ---------- legenda e notas ---------- */
+function legendData(){
+  const ls=[...new Set(items.filter(i=>i.t==='s').map(i=>i.k))];
+  const cnt={};items.filter(i=>i.t==='m').forEach(i=>cnt[i.e]=(cnt[i.e]||0)+1);
+  return{ls,cnt};
+}
+function renderSide(){
+  const {ls,cnt}=legendData();
+  legend.innerHTML=(!ls.length&&!Object.keys(cnt).length)?'<span class="hint">Aparece conforme vocês desenham.</span>':
+    ls.map(k=>{const L=LINES[k];return`<div><span style="display:inline-block;width:30px;border-top:${Math.min(L.w,8)}px ${L.dash.length?'dashed':'solid'} ${L.cor}"></span>${L.nome}</div>`}).join('')+
+    Object.entries(cnt).map(([e,c])=>`<div><span style="font-size:1.2rem">${e}</span>${symName(e)} <span class="hint">(${c})</span></div>`).join('');
+  const ms=items.filter(i=>i.t==='m');
+  notes.innerHTML=ms.length?'':'<span class="hint">Cada símbolo colocado ganha um número. Escrevam aqui o que observaram.</span>';
+  ms.forEach((m,i)=>{const d=document.createElement('div');d.className='n';
+    d.innerHTML=`<b>${i+1}. ${m.e} ${symName(m.e)}</b>`;
+    const inp=document.createElement('input');inp.type='text';inp.value=m.n;inp.placeholder='O que vocês observaram aqui?';
+    inp.oninput=()=>m.n=inp.value;d.appendChild(inp);notes.appendChild(d)});
+}
+
+/* ---------- fundo ---------- */
+bgFile.onchange=()=>{const f=bgFile.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{const im=new Image();im.onload=()=>{bg=im;render()};im.src=r.result};r.readAsDataURL(f)};
+function removeBg(){bg=null;bgFile.value='';render()}
+
+/* ---------- exportar ---------- */
+function wrap(c,t,maxW){const w=t.split(' '),out=[];let l='';w.forEach(p=>{const s=l?l+' '+p:p;if(c.measureText(s).width>maxW&&l){out.push(l);l=p}else l=s});if(l)out.push(l);return out}
+function exportPNG(){
+  const W=1200,H=800,side=380,top=90,pad=20;
+  const tmp=document.createElement('canvas').getContext('2d');tmp.font='14px system-ui';
+  const {ls,cnt}=legendData(),ms=items.filter(i=>i.t==='m');
+  let lines=0;ms.forEach(m=>lines+=1+(m.n?wrap(tmp,m.n,side-50).length:0));
+  const sideH=60+(ls.length+Object.keys(cnt).length)*28+60+lines*20+40;
+  const c=document.createElement('canvas');c.width=W+side+pad*3;c.height=top+Math.max(H,sideH)+pad*2+30;
+  const x=c.getContext('2d');
+  x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);
+  x.fillStyle='#22302a';x.font='bold 30px system-ui';x.textBaseline='top';x.fillText(titulo.value||'Mapa',pad,20);
+  x.font='16px system-ui';x.fillStyle='#5d6a62';
+  x.fillText((grupo.value||'Grupo')+' • '+new Date().toLocaleDateString('pt-BR'),pad,58);
+  x.save();x.translate(pad,top);drawScene(x,W,H);x.strokeStyle='#22302a';x.lineWidth=2;x.strokeRect(0,0,W,H);x.restore();
+  // legenda
+  let lx=W+pad*2,ly=top;x.fillStyle='#235f45';x.font='bold 20px system-ui';x.fillText('Legenda',lx,ly);ly+=36;
+  x.font='15px system-ui';x.textBaseline='middle';
+  ls.forEach(k=>{const L=LINES[k];x.save();x.strokeStyle=L.cor;x.lineWidth=Math.min(L.w,10);x.setLineDash(L.dash);x.beginPath();x.moveTo(lx,ly);x.lineTo(lx+36,ly);x.stroke();x.restore();
+    x.fillStyle='#22302a';x.fillText(L.nome,lx+48,ly);ly+=28});
+  Object.entries(cnt).forEach(([e,n])=>{x.font='22px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif';x.fillText(e,lx+6,ly);
+    x.font='15px system-ui';x.fillStyle='#22302a';x.fillText(symName(e)+' ('+n+')',lx+48,ly);ly+=28});
+  if(ms.length){ly+=20;x.fillStyle='#235f45';x.font='bold 20px system-ui';x.fillText('Observações',lx,ly);ly+=30;
+    ms.forEach((m,i)=>{x.fillStyle='#22302a';x.font='bold 14px system-ui';x.fillText((i+1)+'. '+symName(m.e),lx,ly);ly+=20;
+      x.font='14px system-ui';x.fillStyle='#5d6a62';if(m.n)wrap(x,m.n,side-50).forEach(t=>{x.fillText(t,lx+16,ly);ly+=20})})}
+  x.font='12px system-ui';x.fillStyle='#8a948e';x.textBaseline='bottom';
+  x.fillText('Fonte: levantamento de campo dos alunos (mapeamento participativo).',pad,c.height-10);
+  const a=document.createElement('a');a.download=(grupo.value||'mapa').replace(/[^\wÀ-ú-]+/g,'_')+'.png';a.href=c.toDataURL('image/png');a.click();
+}
+function saveJSON(){const data={titulo:titulo.value,grupo:grupo.value,esc:esc.value,items};
+  const a=document.createElement('a');a.download=(grupo.value||'projeto').replace(/[^\wÀ-ú-]+/g,'_')+'.json';
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'}));a.click()}
+openFile.onchange=()=>{const f=openFile.files[0];if(!f)return;f.text().then(t=>{try{const d=JSON.parse(t);save();
+  items=d.items||[];titulo.value=d.titulo||'';grupo.value=d.grupo||'';esc.value=d.esc||10;refresh()}catch(e){alert('Arquivo inválido')}});openFile.value=''};
+
+refresh();
+</script>
+</body>
+</html>
